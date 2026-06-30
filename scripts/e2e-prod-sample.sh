@@ -23,12 +23,18 @@ console.log("ALLOWLIST PASS:",wf.nodes.map(n=>n.type).join(", "));
 
 echo "== 3. create INACTIVE on prod =="
 CREATE=$(n8nctl workflow create "$PING" --json 2>&1) || { echo "create failed: $CREATE"; exit 1; }
-WID=$(echo "$CREATE" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const o=JSON.parse(s);console.log(o.id||(o.data&&o.data.id)||"")}catch(e){console.log("")}})')
-if [ -z "$WID" ]; then echo "could not parse workflow id from: $CREATE"; exit 1; fi
-echo "created workflow id=$WID (INACTIVE)"
-
-cleanup() { echo "== cleanup: delete $WID =="; n8nctl workflow delete "$WID" --yes 2>&1 || n8nctl workflow delete "$WID" 2>&1; }
+# `workflow create --json` prints a human "✓ created ..." line before the JSON body → strip leading non-JSON.
+WID=$(printf '%s' "$CREATE" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const o=JSON.parse(s.replace(/^[^\[{]*/,""));console.log(o.id||(o.data&&o.data.id)||"")}catch(e){console.log("")}})')
+# Register cleanup BEFORE any further step so a created workflow is never orphaned, even on parse failure.
+WNAME=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).name)' "$PING")
+cleanup() {
+  if [ -n "$WID" ]; then echo "== cleanup: delete $WID =="; n8nctl workflow delete "$WID" --yes 2>&1 | head -2
+  else echo "== cleanup: WID unknown — locating '$WNAME' by name =="; n8nctl workflow list --json 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const a=JSON.parse(s.replace(/^[^\[{]*/,""));const list=Array.isArray(a)?a:(a.data||[]);const m=list.filter(w=>w.name===process.argv[1]);console.log(m.map(w=>w.id).join(" "))}catch(e){}})' "$WNAME" | tr " " "\n" | while read -r id; do [ -n "$id" ] && n8nctl workflow delete "$id" --yes 2>&1 | head -1; done
+  fi
+}
 trap cleanup EXIT
+if [ -z "$WID" ]; then echo "could not parse workflow id (will clean by name on exit); raw: $CREATE" | head -3; exit 1; fi
+echo "created workflow id=$WID (INACTIVE)"
 
 echo "== 4. workflow run (/rest session, headless) =="
 n8nctl workflow run "$WID" --trigger "Schedule Trigger" --wait --timeout 120000; RUN_RC=$?
