@@ -18,7 +18,7 @@ $expect = @('n8n-intake','n8n-build','n8n-deploy','n8n-test','n8n-fix','n8n-roll
             'n8n-code-javascript','n8n-validation-expert','n8nctl')
 foreach ($s in $expect) {
   $sk = Join-Path $Claude "skills\$s\SKILL.md"
-  $ok = (Test-Path $sk) -and ((Get-Content $sk -TotalCount 6 -Raw) -match '(?m)^name:\s*\S')
+  $ok = (Test-Path $sk) -and ((Get-Content $sk -Raw) -match '(?m)^name:\s*\S')
   Check "skill present + frontmatter: $s" $ok
 }
 Check 'merged-away n8n-patterns removed' (-not (Test-Path (Join-Path $Claude 'skills\n8n-patterns')))

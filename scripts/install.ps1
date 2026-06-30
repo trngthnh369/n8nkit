@@ -89,7 +89,7 @@ Write-Host "`n[4/4] Register post-n8n-validate in settings.json (safe JSON edit)
 if ($PSCmdlet.ShouldProcess($settings, 'add PostToolUse entry')) {
   $node = @'
 const fs = require('fs');
-const p = process.argv[1];
+const p = process.argv[2];                         // argv: [node, script, settingsPath]
 const raw = fs.readFileSync(p, 'utf8');
 const cfg = JSON.parse(raw);                       // throws if invalid → aborts (good)
 cfg.hooks = cfg.hooks || {};
