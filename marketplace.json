@@ -1,0 +1,12 @@
+{
+  "name": "n8nkit-marketplace",
+  "owner": { "name": "Truong Thinh", "url": "https://github.com/turti369" },
+  "plugins": [
+    {
+      "name": "n8nkit",
+      "source": "./",
+      "description": "n8n workflow engineering toolkit for Claude Code (skills + guards + agents)."
+    }
+  ],
+  "_note": "Prepared for future marketplace publish. NOT used in the MVP user-level install (see INSTALL.md). To publish: push repo to GitHub, then `/plugin marketplace add turti369/n8nkit`."
+}

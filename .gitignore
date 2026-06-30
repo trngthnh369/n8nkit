@@ -1,0 +1,13 @@
+# Secrets / session — NEVER commit
+.n8n-session.env
+.n8n-cookie.json
+*.env
+*.credentials.json
+*.pem
+*.key
+
+# Local scratch
+node_modules/
+*.log
+tmp/
+scratch/

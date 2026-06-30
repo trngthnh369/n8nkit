@@ -1,0 +1,13 @@
+{
+  "$schema": "./config.schema.json",
+  "description": "n8nkit tuning — paths + defaults. NO secrets here (secrets stay in OS env / n8n credentials).",
+  "workflowRoot": "D:\\Projects\\work\\build-workflow",
+  "templatesDir": "D:\\Projects\\work\\build-workflow\\_templates",
+  "pipelineDir": "D:\\Projects\\work\\build-workflow\\_pipeline",
+  "fixturesDir": "D:\\Projects\\work\\build-workflow\\_fixtures",
+  "validationProfile": "ci",
+  "defaultTier": "utility",
+  "n8nHostEnv": "N8N_HOST",
+  "backupRoot": "~/.claude/backups",
+  "notes": "workflowRoot is the home of n8n projects on this machine. Override here when building for another environment; skills read paths from this file rather than hardcoding (decouples for future publish)."
+}
