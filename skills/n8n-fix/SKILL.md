@@ -121,7 +121,7 @@ Whether success or failure, output:
 - Never activate a workflow as part of the fix — only user activates via `/n8n-deploy --activate`
 - Every patch must pass `n8nctl workflow validate --strict` before deploy
 - Never modify multiple unrelated nodes in one patch — minimal diff only
-- If root cause is credential-related, STOP and ask user — never touch credentials
+- If root cause is credential-related, STOP — never touch credentials; hand off to `/n8n-credentials`
 - Use the bundled backup-manifest tool (`$BM` below) for structured backups (SHA256, retention, restore verify)
 - If auto-triggered, confirm workflow ID with user before starting retry loop (avoid wasting attempts on wrong workflow)
 

@@ -17,11 +17,17 @@ You are the entry point for n8n workflow automation. When triggered, you route t
 
 | Intent | Slash command | Notes |
 |---|---|---|
+| Parse a request into a spec | `/n8n-intake <request>` | Vietnamese clarifying questions |
 | Create new workflow JSON | `/n8n-build <desc> [--tier=...] [--project=...]` | Template-first, local validate |
+| Review before deploy | `/n8n-review <file-or-id>` | Read-only, six-lens, scored artifact |
 | Update existing + push to n8n | `/n8n-deploy <file> [--activate]` | Backup + confirm + test gate |
 | Run workflow once to verify | `/n8n-test <workflowId> [--payload=...]` | Read-only, gate check |
-| Fix broken workflow (auto loop) | `/n8n-fix <workflowId>` | 3 retries → escalate Opus thinking |
+| Fix broken workflow (auto loop) | `/n8n-fix <workflowId>` | 3 retries → escalate |
 | Revert to last backup | `/n8n-rollback <workflowId>` | Confirmed rollback |
+| Health + failure analytics | `/n8n-monitor [workflowId] [--since=...]` | Read-only, routes to fix/credentials |
+| Promote between instances / drift | `/n8n-promote <id> --to <profile>` or `--check <A> <B>` | Target-touching, mapping + confirm |
+| Credential audit/create/rotate | `/n8n-credentials <audit\|create\|rotate>` | The only skill that touches credentials |
+| Generate a runbook | `/n8n-docs <file-or-id>` | Read-only, writes docs/runbook-*.md |
 
 ## Safety rules (non-negotiable)
 
@@ -51,6 +57,11 @@ Full command reference: run `n8nctl --help` or see `n8nctl (skill)` skill.
 
 ## Supporting skills to delegate into
 
+- **n8n-review** — six-lens read-only review before deploy (correctness/security/cost/perf/error/maintainability)
+- **n8n-monitor** — instance health + execution analytics (read-only)
+- **n8n-promote** — cross-instance promotion + drift check
+- **n8n-credentials** — the only skill that touches credentials (audit/create/rotate)
+- **n8n-docs** — generate a runbook + mermaid diagram from a workflow
 - **n8nctl (skill)** — CLI command reference + raw API fallback (has `n8nctl` quick reference)
 - **n8n-node-configuration** — correct node types + typeVersion (offline catalog)
 - **n8n-expression-syntax** — expression syntax correctness
@@ -116,13 +127,27 @@ Hooks in files: plugin `hooks/*.cjs` (or `~/.claude/hooks/*.cjs` legacy). Errors
 ## Default routing logic
 
 ```
-if intent = "build/tạo mới" → /n8n-build
-if intent = "deploy/push/update" + file given → /n8n-deploy
-if intent = "test/chạy thử/verify" + id given → /n8n-test
-if intent = "fix/sửa/debug" + id given → /n8n-fix
-if intent = "rollback/revert" + id given → /n8n-rollback
+if intent = "intake/yêu cầu/spec"                → /n8n-intake
+if intent = "build/tạo mới"                      → /n8n-build
+if intent = "review/đánh giá" + file or id       → /n8n-review
+if intent = "deploy/push/update" + file given    → /n8n-deploy
+if intent = "test/chạy thử/verify" + id given    → /n8n-test
+if intent = "fix/sửa/debug" + id given           → /n8n-fix
+if intent = "rollback/revert" + id given         → /n8n-rollback
+if intent = "monitor/health/thống kê lỗi"        → /n8n-monitor
+if intent = "promote/migrate" + target profile   → /n8n-promote
+if intent = "credential/rotate/xoay key"         → /n8n-credentials
+if intent = "docs/runbook/sơ đồ"                 → /n8n-docs
 if intent unclear → ask user + show the pipeline map above
 ```
+
+## Cross-skill handoffs
+
+- `/n8n-build` success → suggest `/n8n-review` before `/n8n-deploy`.
+- `/n8n-deploy` may run `/n8n-review` as an optional preflight (Step 2.5).
+- `/n8n-fix` and `/n8n-deploy` STOP on credential issues → hand off to `/n8n-credentials` (they never touch credentials).
+- `/n8n-monitor` routes: deterministic failure → `/n8n-fix`; credential → `/n8n-credentials`; drift → `/n8n-promote --check`.
+- `/n8n-deploy` success → offer `/n8n-docs` to hand a runbook to the requester.
 
 ## Tier selection heuristic (for /n8n-build)
 

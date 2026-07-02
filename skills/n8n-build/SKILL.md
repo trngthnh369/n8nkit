@@ -113,7 +113,7 @@ If validation fails:
 Output a summary including:
 - Workflow name, tier, node count, file path
 - Key design decisions (why these nodes, why this tier)
-- Next recommended action: `/n8n-deploy <path>` to deploy to n8n
+- Next recommended action: `/n8n-review <path>` (six-lens review) → then `/n8n-deploy <path>` to deploy to n8n
 
 ## Rules
 - **Never bypass Step 6**. Format correctness is the #1 priority — deploying invalid JSON wastes everyone's time.
