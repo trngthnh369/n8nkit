@@ -7,6 +7,8 @@ allowed-tools: Read, Bash, Glob
 
 # n8n Rollback — Restore Workflow to Latest Backup
 
+> `<workflowRoot>` = the n8n projects root, read from `.n8nkit/config.json` (`workflowRoot` key); default `D:/Projects/work/build-workflow`.
+
 > Since n8nctl 0.7.0 the whole mechanical sequence (safety snapshot → select
 > target → diff preview → restore → verify) is ONE first-class CLI command:
 > `n8nctl workflow rollback`. This skill is now just the judgment layer:
@@ -32,12 +34,12 @@ Before doing ANYTHING in this skill, verify ALL of the following:
 ## Procedure
 
 ### Step 1 — Locate the backup directory
-- If `--project` provided: `D:/Projects/work/build-workflow/<project>/_backups/`
+- If `--project` provided: `<workflowRoot>/<project>/_backups/`
 - Otherwise find it from the workflow name:
   ```bash
   n8nctl workflow get <id> --jq '.name'
   ```
-  then Glob `D:/Projects/work/build-workflow/*/_backups/*_<id>_*.json` to find which project holds backups for this workflow.
+  then Glob `<workflowRoot>/*/_backups/*_<id>_*.json` to find which project holds backups for this workflow.
 
 ### Step 2 — Preview (read-only)
 ```bash

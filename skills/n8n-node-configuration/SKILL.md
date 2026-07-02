@@ -42,7 +42,7 @@ Average 2-3 iterations to valid config. Read validation errors carefully.
 
 ## OFFLINE NODE CATALOG (top 20 native nodes)
 
-**Source of truth:** `D:/Projects/work/build-workflow/_pipeline/node-catalog.json` — used by `validate.js` Layer 6. This mirrors that catalog so Claude can build workflows without MCP.
+**Source of truth:** `<workflowRoot>/_pipeline/node-catalog.json` — used by `validate.js` Layer 6. This mirrors that catalog so Claude can build workflows without MCP.
 
 | Node type | typeVersion | Required params (type) | Key enums |
 |-----------|-------------|------------------------|-----------|

@@ -1,11 +1,13 @@
 ---
 name: n8n-build
-description: Build a NEW n8n workflow JSON from template + research, with strict format validation. Auto-triggers when user asks to build/create/tạo/làm/viết a new n8n workflow with a description of what it does, optionally specifying tier (orchestrator/hub/utility) or target project folder under D:/Projects/work/build-workflow/. Local-only — creates file on disk, does NOT deploy to production. Also invokable manually as `/n8n-build <workflow-description>`. Always starts from template skeleton (never blank file), runs n8nctl validate as mandatory gate before reporting success.
+description: Build a NEW n8n workflow JSON from template + research, with strict format validation. Auto-triggers when user asks to build/create/tạo/làm/viết a new n8n workflow with a description of what it does, optionally specifying tier (orchestrator/hub/utility) or target project folder under <workflowRoot>/. Local-only — creates file on disk, does NOT deploy to production. Also invokable manually as `/n8n-build <workflow-description>`. Always starts from template skeleton (never blank file), runs n8nctl validate as mandatory gate before reporting success.
 argument-hint: <workflow-description> [--tier=orchestrator|hub|utility] [--project=<project-name>]
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 ---
 
 # n8n Build — Template-First Workflow Construction
+
+> `<workflowRoot>` = the n8n projects root, read from `.n8nkit/config.json` (`workflowRoot` key); default `D:/Projects/work/build-workflow`.
 
 You are building a new n8n workflow JSON. Follow this procedure **exactly**. Do not deviate.
 
@@ -34,7 +36,7 @@ You are building a new n8n workflow JSON. Follow this procedure **exactly**. Do 
 Extract from arguments:
 - **Description**: what the workflow should do
 - **Tier**: `orchestrator` | `hub` | `utility` (default: infer from description; utility for single-purpose, hub for domain logic, orchestrator for routing)
-- **Project**: target folder name under `D:/Projects/work/build-workflow/<project>/`. If missing, ASK the user before continuing.
+- **Project**: target folder name under `<workflowRoot>/<project>/`. If missing, ASK the user before continuing.
 
 ### Step 2 — Research (mandatory, do not skip)
 Use these skills/agents in parallel:
@@ -44,13 +46,13 @@ Use these skills/agents in parallel:
 4. **n8n-expression-syntax** skill → validate expression syntax you plan to use
 5. If the task touches an existing domain (ai-ads-manager, ai-kpi-manager, etc.), Read 1-2 existing workflow JSONs from that project for conventions
 
-If the user has `n8n-wiki` at `D:/Projects/work/build-workflow/n8n-wiki/`, query it via `wiki-query` skill.
+If the user has `n8n-wiki` at `<workflowRoot>/n8n-wiki/`, query it via `wiki-query` skill.
 
 ### Step 3 — Start from template (mandatory)
 Copy the tier template as the base skeleton:
-- orchestrator → `D:/Projects/work/build-workflow/_templates/orchestrator.template.json`
-- hub → `D:/Projects/work/build-workflow/_templates/hub.template.json`
-- utility → `D:/Projects/work/build-workflow/_templates/utility.template.json`
+- orchestrator → `<workflowRoot>/_templates/orchestrator.template.json`
+- hub → `<workflowRoot>/_templates/hub.template.json`
+- utility → `<workflowRoot>/_templates/utility.template.json`
 
 **Never build workflow JSON from a blank file.** Always start from template and modify nodes.
 
@@ -75,7 +77,7 @@ Copy the tier template as the base skeleton:
 **Rationale:** HTTP Request is the most stable, transferable, debuggable choice. Specialized nodes can silently break across n8n versions; community nodes may not exist in user's instance.
 
 ### Step 5 — Save to project folder
-Write to `D:/Projects/work/build-workflow/<project>/workflow/<workflow-name>.json`
+Write to `<workflowRoot>/<project>/workflow/<workflow-name>.json`
 (create `<project>/workflow/` directory if missing)
 
 ### Step 6 — Normalize + local validation (mandatory)
@@ -91,7 +93,7 @@ Then validate:
 ```bash
 n8nctl workflow validate <path> --strict
 ```
-(Fallback if CLI not installed: `node D:/Projects/work/build-workflow/_pipeline/validate.js <path>`)
+(Fallback if CLI not installed: `node <workflowRoot>/_pipeline/validate.js <path>`)
 
 If validation fails:
 - Read every error, fix the JSON, re-run normalize + validate.

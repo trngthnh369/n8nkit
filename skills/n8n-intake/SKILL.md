@@ -7,6 +7,8 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 
 # n8n Intake — Vague Request → Structured Workflow Spec
 
+> `<workflowRoot>` = the n8n projects root, read from `.n8nkit/config.json` (`workflowRoot` key); default `D:/Projects/work/build-workflow`.
+
 Bạn là AI Engineer chuyên n8n cho Pierre Cardin VN. Nhiệm vụ: biến yêu cầu mơ hồ từ user phi kỹ thuật (marketing, kế toán, outsourcing) thành **Workflow Spec** đầy đủ để feed `/n8n-build`. Tuân thủ procedure dưới đây **chính xác**.
 
 ## When this skill triggers
@@ -41,8 +43,8 @@ Nếu input < 50 ký tự hoặc không có context business → STOP, hỏi use
 
 ### Step 2 — Load context (parallel)
 Đọc song song để có đủ context:
-1. **Glossary** (nếu tồn tại): `~/.claude/skills/n8n-intake/glossary.md` — từ điển tên người, hệ thống nội bộ, viết tắt Pierre Cardin VN
-2. **Existing projects list**: `ls D:/Projects/work/build-workflow/` để biết project nào đã tồn tại (tránh trùng tên + để gợi ý reuse)
+1. **Glossary** (nếu tồn tại): `glossary.md` (next to this SKILL.md) — từ điển tên người, hệ thống nội bộ, viết tắt Pierre Cardin VN
+2. **Existing projects list**: `ls <workflowRoot>/` để biết project nào đã tồn tại (tránh trùng tên + để gợi ý reuse)
 3. **Memory**: `user_n8n_expertise.md` để biết architecture style (tier system, common integrations)
 
 ### Step 3 — UNDERSTANDING (mandatory verification gate)
@@ -96,13 +98,13 @@ DỪNG. Đợi user paste reply → goto Step 4 (re-evaluate completeness).
 Hard limit: max **5 vòng** clarification. Sau đó nếu vẫn thiếu → flag là "không đủ feasibility, cần meeting trực tiếp với requester".
 
 ### Step 6 — Research similar past workflows (optional, 1-2 phút)
-Grep `D:/Projects/work/build-workflow/` cho keyword domain (ví dụ "facebook ads", "haravan", "kpi"):
+Grep `<workflowRoot>/` cho keyword domain (ví dụ "facebook ads", "haravan", "kpi"):
 - Nếu tìm được workflow tương tự → note vào spec để `/n8n-build` reuse pattern
 - Nếu không có → ghi rõ "no similar precedent" trong spec
 
 ### Step 7 — Generate Workflow Spec
 Output file Markdown theo schema dưới đây. Save vào:
-`D:/Projects/work/build-workflow/<project>/docs/spec-<workflow-name>.md`
+`<workflowRoot>/<project>/docs/spec-<workflow-name>.md`
 
 (`<project>` từ argument `--project=` hoặc infer từ domain. Nếu chưa tồn tại folder → tạo mới + báo user.)
 
@@ -192,5 +194,5 @@ Output cho user:
 - **Mark mọi suy luận bằng `[INFERRED]`** — bạn cần biết phần nào Claude đoán để verify.
 - **Không tự tạo credential reference** — chỉ note "cần tạo credential X" trong spec.
 - **Không invoke `/n8n-build` tự động** — chỉ generate spec rồi handoff. User là quality gate.
-- **Glossary file** ở `~/.claude/skills/n8n-intake/glossary.md` là optional. Nếu không tồn tại, skip step "load glossary" mà không error.
+- **Glossary file** ở `glossary.md` (next to this SKILL.md) là optional. Nếu không tồn tại, skip step "load glossary" mà không error.
 - **Sheet/Form là 1 input source, không phải mandatory** — skill chấp nhận paste text trực tiếp cũng ok.

@@ -78,7 +78,7 @@ Every production workflow needs:
 
 ## Tier Architecture (ECC n8n convention)
 
-User's setup trong `D:/Projects/work/build-workflow/` dùng 3-tier:
+User's setup trong `<workflowRoot>/` dùng 3-tier:
 
 | Tier | Role | Example |
 |------|------|---------|

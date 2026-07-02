@@ -7,6 +7,8 @@ allowed-tools: Bash, Read, Glob
 
 # n8n Test — Execute & Gate Check
 
+> `<workflowRoot>` = the n8n projects root, read from `.n8nkit/config.json` (`workflowRoot` key); default `D:/Projects/work/build-workflow`.
+
 Execute the given workflow and evaluate results against the test gate.
 
 **Primary tool: `n8nctl` CLI**.
@@ -44,7 +46,7 @@ n8nctl workflow get <workflowId> --jq '[.nodes[] | {name, type, typeVersion}]'
 
 ### Step 2 — Build execution payload
 - If `--payload=<file>` provided, use that JSON file
-- Otherwise: look for `D:/Projects/work/build-workflow/_fixtures/<workflow-name>.json`
+- Otherwise: look for `<workflowRoot>/_fixtures/<workflow-name>.json`
 - If no fixture exists, ASK the user for sample input data or offer to build a fixture on-demand
 
 ### Step 3 — Trigger + wait

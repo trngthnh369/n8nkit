@@ -7,6 +7,8 @@ allowed-tools: Read, Edit, Bash, Glob
 
 # n8n Deploy — Production Workflow Deploy
 
+> `<workflowRoot>` = the n8n projects root, read from `.n8nkit/config.json` (`workflowRoot` key); default `D:/Projects/work/build-workflow`.
+
 ## ⚠️ MANDATORY PRE-INVOCATION CHECK (read before any procedure step)
 
 Before doing ANYTHING in this skill, verify ALL of the following:
@@ -14,7 +16,7 @@ Before doing ANYTHING in this skill, verify ALL of the following:
 1. **Explicit deploy intent**: User used a clear deploy verb — `deploy`/`push`/`update`/`đẩy lên`/`triển khai`/`upload`. Words like `ship`/`send it`/`đưa lên`/`finalize` ALONE are AMBIGUOUS. If only ambiguous phrasing was used, STOP and ask:
    > "Bạn có chắc muốn deploy workflow này lên production `$N8N_HOST` không? File path là gì?"
 
-2. **Specific file path provided**: A `.json` file path under `D:/Projects/work/build-workflow/<project>/workflow/` must be present in the request. If missing, STOP and ask user for the file path.
+2. **Specific file path provided**: A `.json` file path under `<workflowRoot>/<project>/workflow/` must be present in the request. If missing, STOP and ask user for the file path.
 
 3. **Auto-trigger context check**: If this skill was auto-invoked (not via `/n8n-deploy`), DOUBLE-confirm with user before any `n8nctl workflow update/create` call:
    > "Mình đang định deploy `<file>` lên production. File đã pass local validate chưa? Bạn xác nhận tiếp tục? (y/n)"
@@ -100,7 +102,7 @@ If any check fails → STOP. Fix the env/auth/connectivity issue first.
 ### Step 2 — Local validation (mandatory gate)
 Run: `n8nctl workflow validate <file> --strict`
 
-(Fallback if CLI not installed: `node D:/Projects/work/build-workflow/_pipeline/validate.js <file>`)
+(Fallback if CLI not installed: `node <workflowRoot>/_pipeline/validate.js <file>`)
 
 If errors → STOP, do not proceed. Tell user to fix and re-run.
 
@@ -253,7 +255,7 @@ n8nctl workflow tag <id> deployed --create
 ```
 
 ### Step 10 — Commit to git
-Project folder pattern: each `D:/Projects/work/build-workflow/<project>/` is its own git repo.
+Project folder pattern: each `<workflowRoot>/<project>/` is its own git repo.
 
 1. `cd <projectDir>`
 2. If `.git` missing → `git init`, ask user for remote URL, set remote, create initial commit

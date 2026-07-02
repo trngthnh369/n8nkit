@@ -7,6 +7,8 @@ allowed-tools: Read, Write, Edit, Bash, Glob
 
 # n8n Fix — Self-Healing Loop
 
+> `<workflowRoot>` = the n8n projects root, read from `.n8nkit/config.json` (`workflowRoot` key); default `D:/Projects/work/build-workflow`.
+
 Self-healing loop for a broken n8n workflow. Use `n8nctl` CLI + `n8n-debugger` agent for patch logic.
 
 ## When this skill triggers
@@ -42,7 +44,7 @@ For summary only: `n8nctl execution last-error --workflow <workflowId> --summary
 ```bash
 n8nctl workflow backup <workflowId> -o <projectDir>/_backups/
 ```
-Record the backup path. Find `projectDir` by searching `D:/Projects/work/build-workflow/*/workflow/` for the workflow JSON.
+Record the backup path. Find `projectDir` by searching `<workflowRoot>/*/workflow/` for the workflow JSON.
 
 ### Step 3.0 — PRODUCTION WRITE GATE (MANDATORY, once per fix session)
 
@@ -84,15 +86,14 @@ For each attempt:
    (exit 1-5 = infra error, not an assertion failure — stop and surface it)
 
 ### Step 4 — Escalation (if all 3 retries fail)
-- Increase thinking budget: use Opus 4.7 with maximum extended thinking (31999 tokens)
-- Spawn `architect` agent for deep root-cause analysis spanning multiple nodes
+- Raise reasoning depth to the maximum this session supports for the deep-dive.
+- Spawn the `architect` agent for deep root-cause analysis spanning multiple nodes. **If `architect` is not available in this installation, do the deep RCA yourself with maximum reasoning depth** — don't hard-fail on the missing agent.
 - If that also fails → STOP, write detailed report, ask user for manual decision
   - Report must include: all 3 attempted diffs, why each failed, hypothesis for root cause, recommended next steps
 - Offer rollback: `n8nctl workflow rollback <workflowId>` (snapshot → diff → confirm → restore → verify, one command)
-- **Auto-journal**: Invoke `journal-writer` agent (via Agent tool, subagent_type="journal-writer") to record:
+- **Auto-journal (optional)**: if the `journal-writer` agent is available (Agent tool, subagent_type="journal-writer"), record — otherwise skip silently:
   - Category: `bug` (if clear root cause found) hoặc `dead-end` (if abandoned)
   - Context: workflow name + id, 3 attempted diffs with results, error patterns observed
-  - Purpose: feed into continuous-learning-v2 pattern extraction
   - Save to `~/.claude/projects/<project-slug>/journal/<date>-n8n-fix-<wf-slug>.md`
 
 ### Step 5 — Success path
@@ -105,7 +106,7 @@ After a successful fix:
    ```
    Include execution ID of the successful run in commit body.
 2. Report success with before/after diff summary
-3. **Auto-journal** (if fix took >1 attempt): Invoke `journal-writer` with category `bug` — record which approach worked on which retry, so future iterations learn the signal-to-action mapping.
+3. **Auto-journal** (optional, if fix took >1 attempt AND `journal-writer` is available): record with category `bug` which approach worked on which retry, so future iterations learn the signal-to-action mapping. Skip silently if the agent is not installed.
 
 ### Step 6 — Report
 Whether success or failure, output:
@@ -121,18 +122,18 @@ Whether success or failure, output:
 - Every patch must pass `n8nctl workflow validate --strict` before deploy
 - Never modify multiple unrelated nodes in one patch — minimal diff only
 - If root cause is credential-related, STOP and ask user — never touch credentials
-- Use backup manifest tool: `node ~/.claude/tools/n8n-backup-manifest.js create <file.json> --reason=n8n-fix` cho structured backup (có SHA256, retention, restore verify)
+- Use the bundled backup-manifest tool (`$BM` below) for structured backups (SHA256, retention, restore verify)
 - If auto-triggered, confirm workflow ID with user before starting retry loop (avoid wasting attempts on wrong workflow)
 
 ## Backup & Restore
 
-Before patch: tạo backup với manifest
+`$BM` = the backup-manifest helper shipped with this kit: `<pluginRoot>/shared/n8n-backup-manifest.js`, where `<pluginRoot>` is **two directories up from this SKILL.md** (`skills/n8n-fix/` → plugin root). **If it is missing** (e.g. a partial install), degrade to `n8nctl workflow backup <id> -o <projectDir>/_backups/` — do not fail the fix on the helper's absence.
+
 ```bash
-node ~/.claude/tools/n8n-backup-manifest.js create <projectDir>/workflow/<name>.json --reason=n8n-fix
+# Before patch — structured backup:
+node "$BM" create <projectDir>/workflow/<name>.json --reason=n8n-fix
+# List / restore / prune:
+node "$BM" list <projectDir>
+node "$BM" restore <projectDir> <backup-id>
+node "$BM" prune <projectDir> --keep=10   # default 10
 ```
-
-List backups: `node ~/.claude/tools/n8n-backup-manifest.js list <projectDir>`
-
-Restore nếu cần: `node ~/.claude/tools/n8n-backup-manifest.js restore <projectDir> <backup-id>`
-
-Retention: `node ~/.claude/tools/n8n-backup-manifest.js prune <projectDir> --keep=10` (default 10)

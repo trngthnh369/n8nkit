@@ -9,7 +9,7 @@ You are the entry point for n8n workflow automation. When triggered, you route t
 
 ## When to trigger
 - User says "build/tạo workflow", "deploy wf", "test wf", "fix wf", "rollback wf"
-- User references a workflow file under `D:/Projects/work/build-workflow/`
+- User references a workflow file under `<workflowRoot>/`
 - User asks to push a workflow to n8n production
 - User reports an n8n execution error and wants it fixed
 
@@ -58,7 +58,7 @@ Full command reference: run `n8nctl --help` or see `n8nctl (skill)` skill.
 - **n8n-integrations** — Meta/Sheets/TikTok/Claude API patterns
 - **n8n-code-javascript** — Code node content
 - **n8n-workflow-patterns** — proven architectural patterns + node cheat-sheet + ecommerce recipes
-- **wiki-query** — if the user maintains `n8n-wiki` at `D:/Projects/work/build-workflow/n8n-wiki/`
+- **wiki-query** — if the user maintains `n8n-wiki` at `<workflowRoot>/n8n-wiki/`
 
 ## Supporting agents to delegate into
 
@@ -69,7 +69,7 @@ Full command reference: run `n8nctl --help` or see `n8nctl (skill)` skill.
 ## Directory layout
 
 ```
-D:/Projects/work/build-workflow/
+<workflowRoot>/
 ├── _pipeline/
 │   ├── validate.js      # Local schema validator (legacy; prefer `n8nctl workflow validate`)
 │   └── backup.js        # Workflow export/restore helper
