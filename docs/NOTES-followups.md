@@ -5,10 +5,10 @@ State after MVP (Consolidate + Uplift), 2026-06-30. The kit is installed user-le
 
 ## Deferred (fast-follow — intentionally out of MVP per plan-review)
 
-- **`n8n-review`** — 6-lens workflow review (structure/flow · error-handling&retry · credentials/secrets ·
-  idempotency&rate-limits · observability · naming). Ship as a **`/command`** (explicit, zero always-on
-  token cost), not an auto-trigger skill. Lens checklist lives in `commands/n8n-review.md`; `n8n-deploy`
-  preflight + `n8n-build` reference it. (Both plan reviewers flagged a standalone auto-skill as YAGNI.)
+- **`n8n-review`** — 6-lens workflow review (correctness · security/credentials · cost · performance ·
+  error-handling/retry · maintainability). **Superseded** — shipping as `skills/n8n-review/` in 0.3.0
+  (per-project plugin enable removes the always-on token concern that motivated the /command form). See
+  CHANGELOG. Static lint folds in as the correctness lens's entry check.
 - **`n8n-intake` spec-uplift** — add a problem-first **validate** step (completeness/clarity/over-engineering/
   feasibility scoring) + **decompose** into MVP→Enhanced→Polish phases (≙ tier). Mirrors ClaudeKit
   `spec:create→validate→decompose`. Do after the consolidation has burned in.

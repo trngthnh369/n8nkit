@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/trngthnh369/n8nkit/.n8nkit/config.schema.json",
+  "title": "n8nkit config",
+  "description": "Tuning + paths for the n8nkit toolkit. NO secrets — secrets stay in OS env / n8n credentials.",
+  "type": "object",
+  "properties": {
+    "$schema": { "type": "string" },
+    "description": { "type": "string" },
+    "notes": { "type": "string" },
+    "workflowRoot": {
+      "type": "string",
+      "description": "Home of n8n projects on this machine. Guards + skills read this instead of hardcoding paths."
+    },
+    "templatesDir": { "type": "string" },
+    "pipelineDir": { "type": "string" },
+    "fixturesDir": { "type": "string" },
+    "backupRoot": { "type": "string" },
+    "validationProfile": {
+      "type": "string",
+      "enum": ["dev", "ci", "strict"],
+      "description": "Default n8nctl validation profile. dev=CRITICAL, ci=CRITICAL+HIGH (default), strict=+MEDIUM."
+    },
+    "defaultTier": {
+      "type": "string",
+      "enum": ["utility", "hub", "orchestrator"],
+      "description": "Default workflow complexity tier for /n8n-build."
+    },
+    "n8nHostEnv": {
+      "type": "string",
+      "description": "Name of the env var holding the n8n host URL (e.g. N8N_HOST)."
+    }
+  },
+  "additionalProperties": true
+}

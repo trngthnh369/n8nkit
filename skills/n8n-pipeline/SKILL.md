@@ -104,13 +104,14 @@ cp _templates/project-bootstrap/.claudeignore.template <project>/.claudeignore
 
 See `_templates/project-bootstrap/README.md` for placeholder table.
 
-## Safety hooks (auto-enforced via ~/.claude/settings.json)
+## Safety hooks (auto-enforced — plugin `hooks/hooks.json`, or user-level `settings.json` on legacy installs)
 
-- **`pre-bash-n8n-deploy-validate`** — blocks `n8nctl workflow update/create/import` nếu local validate.js fail
-- **`post-bash-n8nctl-diagnose`** — nếu n8nctl exec error → auto-suggest `/n8n-fix`
-- **`pre-write-n8n-secret`** — blocks hardcoded JWT/API key/token vào workflow JSON
+- **`pre-n8n-secret-guard`** (PreToolUse Write|Edit|MultiEdit|NotebookEdit) — blocks hardcoded JWT / API key / token in workflow JSON and Claude config. Registered user-level under the filename `pre-write-n8n-secret.cjs`.
+- **`pre-bash-n8n-prod-guard`** (PreToolUse Bash|PowerShell) — blocks mutating `n8nctl workflow update|promote|activate|delete|import|rollback` and `credential create` unless a fresh approval artifact exists (produced by the deploy/fix/promote/credentials gates). Fail-closed production write control.
+- **`post-n8n-validate`** (PostToolUse Write|Edit) — warn-only `n8nctl workflow validate` after writing a workflow JSON.
+- **`post-bash-n8nctl-diagnose`** (PostToolUse Bash|PowerShell) — if an n8nctl command errors → suggests `/n8n-fix`.
 
-Hooks in files: `~/.claude/hooks/*.cjs`. Errors logged to `~/.claude/hooks/logs/errors.log`.
+Hooks in files: plugin `hooks/*.cjs` (or `~/.claude/hooks/*.cjs` legacy). Errors logged to `~/.claude/hooks/logs/errors.log`.
 
 ## Default routing logic
 
