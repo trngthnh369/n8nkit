@@ -76,5 +76,38 @@ check('draft (incomplete JSON) → SILENT (exit 0, no spam)', r.code === 0 && r.
 r = run('post-n8n-validate.cjs', { tool_input: { file_path: fValid } });
 check('valid workflow → exit 0', r.code === 0, `code=${r.code} out=${r.out.trim()}`);
 
+console.log('== secret-pattern single-source (fallback ⊆ json) ==');
+// The crash-safe inlined FALLBACK_BLOCK must be a SUBSET of the canonical secret-patterns.json:
+// it may never block something the json wouldn't. Some fallback entries are COMBINED regexes
+// (e.g. one GitHub pattern) that the json splits into granular per-prefix patterns — this mapping
+// declares that equivalence explicitly (a plain name-equality check would fail on those).
+const { FALLBACK_BLOCK } = require(path.join(HOOKS, 'pre-n8n-secret-guard.cjs'));
+const patternsJson = JSON.parse(fs.readFileSync(path.join(HOOKS, 'secret-patterns.json'), 'utf8'));
+const jsonBlockNames = new Set(patternsJson.patterns.filter((p) => p.action === 'block').map((p) => p.name));
+// fallback name → the json block pattern name(s) that together cover it
+const FALLBACK_TO_JSON = {
+  'JWT': ['JWT'],
+  'Google API key': ['Google API key'],
+  'AWS access key': ['AWS access key'],
+  'AWS session token': ['AWS session token'],
+  'Bearer token': ['Bearer token'],
+  'OpenAI API key': ['OpenAI API key'],
+  'Anthropic API key': ['Anthropic API key'],
+  'GitHub token': ['GitHub PAT (classic)', 'GitHub OAuth token', 'GitHub user-to-server', 'GitHub server-to-server', 'GitHub refresh token'],
+  'Stripe live key': ['Stripe live secret key', 'Stripe live restricted key'],
+  'Slack token': ['Slack token'],
+  'PEM private key': ['PEM private key'],
+};
+for (const fb of FALLBACK_BLOCK) {
+  const mapped = FALLBACK_TO_JSON[fb.name];
+  check(`fallback "${fb.name}" is mapped`, Array.isArray(mapped) && mapped.length > 0,
+    'add a mapping entry in FALLBACK_TO_JSON when introducing a new fallback pattern');
+  if (Array.isArray(mapped)) {
+    const missing = mapped.filter((n) => !jsonBlockNames.has(n));
+    check(`fallback "${fb.name}" covered by json block pattern(s)`, missing.length === 0,
+      `missing from secret-patterns.json (action=block): ${missing.join(', ')}`);
+  }
+}
+
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

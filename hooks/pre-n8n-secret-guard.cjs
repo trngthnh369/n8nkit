@@ -41,29 +41,36 @@ function loadPatterns() {
   }
 }
 
-safeHook('pre-n8n-secret-guard', () => {
-  const data = readInput();
-  const file = (data.tool_input && data.tool_input.file_path) || '';
-  const content = (data.tool_input && (data.tool_input.content || data.tool_input.new_string)) || '';
+function main() {
+  safeHook('pre-n8n-secret-guard', () => {
+    const data = readInput();
+    const file = (data.tool_input && data.tool_input.file_path) || '';
+    const content = (data.tool_input && (data.tool_input.content || data.tool_input.new_string)) || '';
 
-  const isWorkflowJson = /build-workflow[\\/].*\.json$/i.test(file);
-  // Claude config: settings.json + any .bak under ~/.claude (plaintext keys leaked here before — 2026-06-10)
-  const isClaudeConfig = /[\\/]\.claude[\\/](settings\.json|.*\.bak[^\\/]*)$/i.test(file);
-  if (!isWorkflowJson && !isClaudeConfig) return;
+    const isWorkflowJson = /build-workflow[\\/].*\.json$/i.test(file);
+    // Claude config: settings.json + any .bak under ~/.claude (plaintext keys leaked here before — 2026-06-10)
+    const isClaudeConfig = /[\\/]\.claude[\\/](settings\.json|.*\.bak[^\\/]*)$/i.test(file);
+    if (!isWorkflowJson && !isClaudeConfig) return;
 
-  const where = isWorkflowJson ? 'workflow JSON' : 'Claude config file';
-  const hint = isWorkflowJson ? 'Use an n8n credentials reference instead.' : 'Use an OS-level env var (setx) instead.';
+    const where = isWorkflowJson ? 'workflow JSON' : 'Claude config file';
+    const hint = isWorkflowJson ? 'Use an n8n credentials reference instead.' : 'Use an OS-level env var (setx) instead.';
 
-  const { patterns } = loadPatterns();
-  for (const pat of patterns) {
-    if (pat.re.test(content)) {
-      if (pat.action === 'block') {
-        process.stderr.write(`BLOCKED: hardcoded ${pat.name} detected in ${where}. ${hint}\n`);
-        process.exit(2);
-      } else {
-        // warn-only: surfaces a heads-up without blocking legit field names
-        process.stderr.write(`[pre-n8n-secret-guard] WARN: possible secret near a "${pat.name}" field in ${where} — verify it is a credential reference, not a literal.\n`);
+    const { patterns } = loadPatterns();
+    for (const pat of patterns) {
+      if (pat.re.test(content)) {
+        if (pat.action === 'block') {
+          process.stderr.write(`BLOCKED: hardcoded ${pat.name} detected in ${where}. ${hint}\n`);
+          process.exit(2);
+        } else {
+          // warn-only: surfaces a heads-up without blocking legit field names
+          process.stderr.write(`[pre-n8n-secret-guard] WARN: possible secret near a "${pat.name}" field in ${where} — verify it is a credential reference, not a literal.\n`);
+        }
       }
     }
-  }
-});
+  });
+}
+
+// Run as a hook only when invoked directly; when require()'d (e.g. by test-hooks.cjs)
+// expose internals without executing the hook against stdin.
+if (require.main === module) main();
+module.exports = { FALLBACK_BLOCK, loadPatterns, main };
