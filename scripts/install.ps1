@@ -11,6 +11,10 @@
 param()
 $ErrorActionPreference = 'Stop'
 
+Write-Host "NOTE: this is the LEGACY user-level copy-install path. The primary distribution is now the" -ForegroundColor DarkYellow
+Write-Host "      Claude Code plugin (see INSTALL.md: /plugin marketplace add + /plugin install). Keep using" -ForegroundColor DarkYellow
+Write-Host "      this only as a fallback / for the pre-plugin layout.`n" -ForegroundColor DarkYellow
+
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $Claude   = Join-Path $HOME '.claude'
 $Date     = Get-Date -Format 'yyyy-MM-dd'
