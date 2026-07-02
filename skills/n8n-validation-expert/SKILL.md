@@ -30,12 +30,13 @@ Configure node → validate.js → Read errors → Fix → validate.js → (repe
 
 ## Validation Profiles
 
-| Profile | Use when | Checks |
-|---------|----------|--------|
-| `minimal` | Quick check during editing | Required fields, basic structure |
-| `runtime` (default) | Before deploy | All errors + common warnings |
-| `strict` | Production readiness | All errors + all warnings + best practices |
-| `ai-friendly` | When using AI tools | Extra checks for AI-generated configs |
+n8nctl exposes three profiles (matches the gating used everywhere else in the kit):
+
+| Profile | Use when | Gates on |
+|---------|----------|----------|
+| `dev` | Quick check mid-edit | CRITICAL only |
+| `ci` (default) | Before deploy / hooks | CRITICAL + HIGH |
+| `strict` | Production readiness | CRITICAL + HIGH + MEDIUM |
 
 ## Top Error Categories
 
