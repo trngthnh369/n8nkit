@@ -5,7 +5,14 @@ this project uses semver-ish tags on a local (no-remote) repo.
 
 ## [Unreleased]
 
-- P3 machine migration (operational — user-gated), P5 n8nctl `node` live-catalog verbs, P6 failure→fix E2E.
+### Added
+- `scripts/e2e-fix-loop.sh` — failure→fix→redeploy E2E (run-by-user; needs session auth).
+- test-hooks harness: `post-bash-n8nctl-diagnose` coverage + `hooks.json` manifest lint (50 → 58 assertions).
+
+### Pending (user-gated / separate release)
+- **P3** machine migration to the plugin runtime (fresh-session verification — see NOTES-followups).
+- **P5** n8nctl `node` live-catalog verbs (cross-repo `n8nctl` 1.1.0; gated on the `/types/nodes.json`
+  endpoint check; n8nkit already degrades to the offline catalog).
 
 ## [0.3.0] — 2026-07-02 — Full-cycle skills
 
