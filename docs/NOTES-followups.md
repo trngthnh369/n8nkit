@@ -3,6 +3,12 @@
 State after MVP (Consolidate + Uplift), 2026-06-30. The kit is installed user-level at `~/.claude/`
 (backup: `~/.claude/backups/n8nkit-premigration-2026-06-30/`).
 
+## Personal user-level scripts (NOT bundled by the plugin)
+
+`~/.claude/scripts/n8n_session.py` and `set-n8n-key.ps1` predate n8nkit and are **not referenced by any
+kit skill** (verified by grep) — they stay as the user's personal scripts, not shipped by the plugin.
+The `n8n-backup-manifest.js` helper (called by n8n-fix) **is** now bundled at `shared/n8n-backup-manifest.js`.
+
 ## Deferred (fast-follow — intentionally out of MVP per plan-review)
 
 - **`n8n-review`** — 6-lens workflow review (correctness · security/credentials · cost · performance ·
