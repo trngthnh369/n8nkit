@@ -156,6 +156,32 @@ check('shell-write of AWS key into workflow json → BLOCK (exit 2)', r.code ===
 r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: "echo '{}' > /x/build-workflow/wf.json" } });
 check('benign shell-write (no secret) → silent (exit 0)', r.code === 0 && r.out.trim() === '', `code=${r.code} out=${r.out.trim()}`);
 
+console.log('== post-bash-n8nctl-diagnose ==');
+r = run('post-bash-n8nctl-diagnose.cjs', { tool_input: { command: 'n8nctl workflow get 42' }, tool_response: { stderr: 'Error: AuthError', exit_code: 2 } });
+check('n8nctl error → suggests /n8n-fix (exit 0)', r.code === 0 && /\/n8n-fix/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
+r = run('post-bash-n8nctl-diagnose.cjs', { tool_input: { command: 'n8nctl workflow list' }, tool_response: { stdout: 'ok', exit_code: 0 } });
+check('n8nctl clean success → silent (exit 0)', r.code === 0 && r.out.trim() === '', `code=${r.code} out=${r.out.trim()}`);
+r = run('post-bash-n8nctl-diagnose.cjs', { tool_input: { command: 'ls /nope' }, tool_response: { stderr: 'No such file', exit_code: 2 } });
+check('non-n8nctl error → silent (not our concern)', r.code === 0 && r.out.trim() === '', `code=${r.code} out=${r.out.trim()}`);
+
+console.log('== hooks.json manifest lint ==');
+// Every command referencing a hooks/<file>.cjs must point at a file that actually exists (kills the
+// phantom-hook class of bug automatically).
+const manifest = JSON.parse(fs.readFileSync(path.join(HOOKS, 'hooks.json'), 'utf8'));
+let refCount = 0;
+for (const ev of Object.keys(manifest.hooks || {})) {
+  for (const entry of manifest.hooks[ev]) {
+    for (const hk of (entry.hooks || [])) {
+      const m = (hk.command || '').match(/hooks\/([\w.-]+\.cjs)/);
+      if (m) {
+        refCount++;
+        check(`hooks.json → ${m[1]} exists (${ev})`, fs.existsSync(path.join(HOOKS, m[1])), 'referenced script missing');
+      }
+    }
+  }
+}
+check('hooks.json references at least the 4 guards', refCount >= 4, `found ${refCount}`);
+
 console.log('== secret-pattern single-source (fallback ⊆ json) ==');
 // The crash-safe inlined FALLBACK_BLOCK must be a SUBSET of the canonical secret-patterns.json:
 // it may never block something the json wouldn't. Some fallback entries are COMBINED regexes
