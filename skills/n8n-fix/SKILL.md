@@ -1,6 +1,6 @@
 ---
 name: n8n-fix
-description: Self-healing loop for a broken n8n workflow on production — fetches latest execution error, patches JSON, retries up to 3 times, escalates to architect if all fail. Auto-triggers when user reports an n8n workflow error/failure with workflow ID, or after a /n8n-test or /n8n-deploy gate fails. Has built-in safety: backup before patch, validate before deploy, never touches credentials, max 3 retries with auto-journaling. Also invokable manually as `/n8n-fix <workflowId>`. NOT for fixing generic code bugs — only n8n workflow execution errors.
+description: Self-healing loop for a broken n8n workflow on production — fetches latest execution error, patches JSON, retries up to 3 times, escalates to architect if all fail. Auto-triggers when user reports an n8n workflow error/failure with workflow ID, or after a /n8n-test or /n8n-deploy gate fails. Has built-in safety: backup before patch, mandatory user confirmation + artifact gate before the FIRST production write of the loop, validate before deploy, never touches credentials, max 3 retries with auto-journaling. Also invokable manually as `/n8n-fix <workflowId>`. NOT for fixing generic code bugs — only n8n workflow execution errors.
 argument-hint: <workflowId> [--max-retries=3]
 allowed-tools: Read, Write, Edit, Bash, Glob
 ---
@@ -43,6 +43,26 @@ For summary only: `n8nctl execution last-error --workflow <workflowId> --summary
 n8nctl workflow backup <workflowId> -o <projectDir>/_backups/
 ```
 Record the backup path. Find `projectDir` by searching `D:/Projects/work/build-workflow/*/workflow/` for the workflow JSON.
+
+### Step 3.0 — PRODUCTION WRITE GATE (MANDATORY, once per fix session)
+
+The retry loop writes to PRODUCTION (`n8nctl workflow update`). Before the FIRST update of the loop:
+
+1. **Create the approval artifact** `.claude/artifacts/n8n-fix-<workflowId>/context-snippets.json`:
+   ```json
+   {
+     "workflow_id": "<id>", "workflow_name": "<name>",
+     "failing_node": "<node>", "error_summary": "<1-line>",
+     "backup_path": "<from Step 2>",
+     "rollback_command": "/n8n-rollback <workflowId>",
+     "approved_at": "<iso timestamp — written AFTER user confirms>"
+   }
+   ```
+2. **Show the user**: root-cause hypothesis, the attempt-1 patch diff (`n8nctl workflow diff <workflowId> <file>`), backup path, and target host (`n8nctl auth status`).
+3. **Ask explicit confirmation** — user must reply a clear "yes"/"có" (same wording rule as `/n8n-deploy` Step 5) to authorize the fix loop (max retries as configured). The first `n8nctl workflow update` MUST NOT run before this gate passes.
+4. Retries inside the approved loop deploy without re-asking, BUT append `{attempt, diff_summary, verify_exit}` to `attempts.json` in the artifact dir after each attempt. If the root-cause hypothesis changes to a DIFFERENT node mid-loop → re-confirm with the user before deploying that patch.
+
+> Enforcement: the `pre-bash-n8n-prod-guard` hook blocks `n8nctl workflow update` when no fresh approval artifact exists — this gate is deterministic, not just procedure.
 
 ### Step 3 — Retry loop (max 3 by default)
 For each attempt:
@@ -96,6 +116,7 @@ Whether success or failure, output:
 - Git commit hash (if committed)
 
 ## Rules
+- **Fix loop FAILS closed if the artifact dir is missing before the first `workflow update`** — same artifact-gate contract as `/n8n-deploy` (enforced by `pre-bash-n8n-prod-guard` hook)
 - Never activate a workflow as part of the fix — only user activates via `/n8n-deploy --activate`
 - Every patch must pass `n8nctl workflow validate --strict` before deploy
 - Never modify multiple unrelated nodes in one patch — minimal diff only
