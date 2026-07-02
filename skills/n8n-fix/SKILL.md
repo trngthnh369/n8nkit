@@ -1,6 +1,6 @@
 ---
 name: n8n-fix
-description: Self-healing loop for a broken n8n workflow on production — fetches latest execution error, patches JSON, retries up to 3 times, escalates to architect if all fail. Auto-triggers when user reports an n8n workflow error/failure with workflow ID, or after a /n8n-test or /n8n-deploy gate fails. Has built-in safety: backup before patch, mandatory user confirmation + artifact gate before the FIRST production write of the loop, validate before deploy, never touches credentials, max 3 retries with auto-journaling. Also invokable manually as `/n8n-fix <workflowId>`. NOT for fixing generic code bugs — only n8n workflow execution errors.
+description: 'Self-healing loop for a broken n8n workflow on production — fetches latest execution error, patches JSON, retries up to 3 times, escalates to architect if all fail. Auto-triggers when user reports an n8n workflow error/failure with workflow ID, or after a /n8n-test or /n8n-deploy gate fails. Has built-in safety: backup before patch, mandatory user confirmation + artifact gate before the FIRST production write of the loop, validate before deploy, never touches credentials, max 3 retries with auto-journaling. Also invokable manually as `/n8n-fix <workflowId>`. NOT for fixing generic code bugs — only n8n workflow execution errors.'
 argument-hint: <workflowId> [--max-retries=3]
 allowed-tools: Read, Write, Edit, Bash, Glob
 ---

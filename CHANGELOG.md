@@ -33,6 +33,12 @@ this project uses semver-ish tags on a local (no-remote) repo.
   `journal-writer` agents are optional.
 - README/INSTALL rewritten for the plugin era.
 
+### Fixed
+- **YAML frontmatter in `n8n-fix` + `n8n-pipeline`**: unquoted `description:` values contained `: `
+  (colon-space), which YAML reads as a mapping — the skills would load with **empty metadata** (no
+  auto-trigger, no allowed-tools). Single-quoted the values. Caught by `claude plugin validate` (latent
+  since the kit was never loaded as a plugin before).
+
 ### Removed
 - Legacy `hooks/pre-write-n8n-secret.cjs` (superseded by `pre-n8n-secret-guard`; install.ps1 already
   copies the v2 guard over that filename).

@@ -1,6 +1,6 @@
 ---
 name: n8n-pipeline
-description: Fallback router and reference documentation for the n8n workflow pipeline. Trigger ONLY when user intent is ambiguous about which n8n operation to perform, or asks meta questions about the pipeline ("what should I do with this workflow", "list n8n commands", "explain n8n pipeline", "show me the n8n safety rules"). For specific operations, the dedicated skills handle directly: n8n-build (create), n8n-deploy (deploy to prod), n8n-test (verify), n8n-fix (self-heal), n8n-rollback (revert). Do NOT trigger when user has already specified a clear intent — let the specific skill take over.
+description: 'Fallback router and reference documentation for the n8n workflow pipeline. Trigger ONLY when user intent is ambiguous about which n8n operation to perform, or asks meta questions about the pipeline ("what should I do with this workflow", "list n8n commands", "explain n8n pipeline", "show me the n8n safety rules"). For specific operations, the dedicated skills handle directly: n8n-build (create), n8n-deploy (deploy to prod), n8n-test (verify), n8n-fix (self-heal), n8n-rollback (revert). Do NOT trigger when user has already specified a clear intent — let the specific skill take over.'
 ---
 
 # n8n Pipeline Orchestrator
