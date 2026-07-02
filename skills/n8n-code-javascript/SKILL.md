@@ -5,7 +5,7 @@ description: Write JavaScript code in n8n Code nodes. Use when writing JavaScrip
 
 # JavaScript Code Node
 
-> **⚠️ IMPORTANT (2026-04-21):** `search_nodes`/`get_node`/`validate_node`/`n8n_create_workflow` in references are **LEGACY** — `n8n-mcp` not installed. Use `n8nctl` CLI + `node D:/Projects/work/build-workflow/_pipeline/validate.js <file>` for validation.
+> **Tooling:** validate + discover nodes via `n8nctl` (see the `n8nctl` skill): `n8nctl workflow validate <file> --profile ci` and `n8nctl workflow schema --node <type>`. The offline node catalog lives in `n8n-node-configuration`.
 
 JavaScript là **recommended choice** cho 95% use cases (vs Python) — vì có `$helpers.httpRequest()`, Luxon DateTime, và tích hợp n8n tốt hơn.
 

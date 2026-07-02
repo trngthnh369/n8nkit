@@ -5,7 +5,7 @@ description: Proven workflow architectural patterns + node cheat-sheet + ecommer
 
 # n8n Workflow Patterns
 
-> **⚠️ IMPORTANT:** `n8n-mcp` is NOT installed — any `search_nodes`/`get_node`/`search_templates` MCP refs are **LEGACY, do not use**. Use `n8nctl` CLI + inline catalog in `n8n-node-configuration` + `n8nctl workflow validate --strict`. For templates, read existing JSONs in `<workflowRoot>/<project>/workflow/` or query `n8n-wiki` via `wiki-query`. (`<workflowRoot>` per `.n8nkit/config.json`, default `D:/Projects/work/build-workflow`.)
+> **Tooling:** discover nodes via `n8nctl workflow schema --node <type>` + the inline catalog in `n8n-node-configuration`; validate with `n8nctl workflow validate --strict`. For templates, read existing JSONs in `<workflowRoot>/<project>/workflow/` or query `n8n-wiki` via `wiki-query` (if available). (`<workflowRoot>` per `.n8nkit/config.json`, default `D:/Projects/work/build-workflow`.)
 >
 > *(Merged 2026-06-30: absorbed `n8n-patterns` — node cheat-sheet, ecommerce recipes, HTTP tips below.)*
 

@@ -5,7 +5,7 @@ description: Validate n8n expression syntax and fix common errors. Use when writ
 
 # n8n Expression Syntax
 
-> **⚠️ IMPORTANT (2026-04-21):** `n8n-mcp` not installed. For validation use `node D:/Projects/work/build-workflow/_pipeline/validate.js <file>` (Layer 3 checks expression brace balance).
+> **Tooling:** validate expressions via `n8nctl workflow validate <file> --profile ci` (Layer 3 checks `{{ }}` brace balance). See the `n8nctl` skill.
 
 ## Format
 

@@ -1,11 +1,11 @@
 ---
 name: n8n-node-configuration
-description: Operation-aware node configuration for n8n workflows. Use when configuring nodes, determining required fields, verifying parameter types, or learning common configuration patterns by node type. Contains offline catalog for top 20 native nodes so you do NOT need n8n-mcp MCP server.
+description: Operation-aware node configuration for n8n workflows. Use when configuring nodes, determining required fields, verifying parameter types, or learning common configuration patterns by node type. Contains an offline catalog for the top 20 native nodes; live per-instance schema via `n8nctl workflow schema --node <type>`.
 ---
 
 # n8n Node Configuration
 
-> **⚠️ IMPORTANT (2026-04-21):** `n8n-mcp` server is NOT installed. Legacy `get_node`/`search_nodes`/`validate_node` references in `references/` are FYI only. Use **inline catalog** below + `D:/Projects/work/build-workflow/_pipeline/node-catalog.json` + `node D:/Projects/work/build-workflow/_pipeline/validate.js` (Layer 6 checks types).
+> **Tooling:** node discovery + schema via `n8nctl workflow schema --node <type>` (see the `n8nctl` skill) or the **inline catalog** below; validate with `n8nctl workflow validate <file> --profile ci` (Layer 6 checks param types). The API-call snippets in the reference files are illustrative — use the n8nctl commands.
 
 ## Core Principles
 
@@ -26,7 +26,7 @@ Average 2-3 iterations to valid config. Read validation errors carefully.
 ## Top Anti-Patterns
 
 1. ❌ **Over-configure upfront** — Adding all 20 optional fields on first pass. Start minimal.
-2. ❌ **Skip validation** — `n8n_update_partial_workflow` without validate first. YOLO.
+2. ❌ **Skip validation** — pushing `n8nctl workflow update` without `n8nctl workflow validate` first. YOLO.
 3. ❌ **Copy config across operations** — Slack `post` config won't work for `update` (different required fields).
 4. ❌ **String vs object confusion** — `headerParameters`, `assignments`, `conditions` are OBJECTS with `.parameters` array, not strings.
 5. ❌ **Boolean vs string** — `sendHeaders: "yes"` is wrong; must be `sendHeaders: true`.
@@ -99,7 +99,7 @@ Values starting with `=` are runtime expressions. Layer 6 skips type check; expr
 
 ## Related Skills
 
-- **`n8nctl`** — CLI + REST API for live workflow CRUD (replaces n8n-mcp discovery)
+- **`n8nctl`** — CLI + REST API for live workflow CRUD and node schema discovery
 - **`n8n-validation-expert`** — Interpret errors from `_pipeline/validate.js`
 - **`n8n-expression-syntax`** — Configure `={{...}}` expression fields
 - **`n8n-workflow-patterns`** — Architectural patterns (webhook, scheduled, AI agent, etc.)

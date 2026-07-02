@@ -65,10 +65,8 @@ Common validation errors by priority:
 
 **How to identify required fields**:
 ```javascript
-// Use get_node to see what's required
-const info = get_node({
-  nodeType: "nodes-base.slack"
-});
+// Inspect the node schema: n8nctl workflow schema --node <type>
+// info = node schema from: n8nctl workflow schema --node nodes-base.slack
 // Check properties marked as "required": true
 ```
 
@@ -629,12 +627,7 @@ const info = get_node({
 
 **Fix**: Use `cleanStaleConnections` operation:
 ```javascript
-n8n_update_partial_workflow({
-  id: "workflow-id",
-  operations: [{
-    type: "cleanStaleConnections"
-  }]
-})
+n8nctl workflow update <workflowId> <file>   // re-push cleaned workflow
 ```
 
 #### Example 3: Renamed Node Not Updated
@@ -868,15 +861,15 @@ let config = {
   text: "Hello"
 };
 
-validate_node({nodeType: "nodes-base.slack", config, profile: "runtime"});
+n8nctl workflow validate <file> --profile ci   // node nodes-base.slack (was profile "runtime")
 // ✅ Valid
 
 // Step 2: Add features one by one
 config.attachments = [...];
-validate_node({nodeType: "nodes-base.slack", config, profile: "runtime"});
+n8nctl workflow validate <file> --profile ci   // node nodes-base.slack (was profile "runtime")
 
 config.blocks = [...];
-validate_node({nodeType: "nodes-base.slack", config, profile: "runtime"});
+n8nctl workflow validate <file> --profile ci   // node nodes-base.slack (was profile "runtime")
 ```
 
 ### Pattern 2: Error Triage
@@ -885,7 +878,7 @@ validate_node({nodeType: "nodes-base.slack", config, profile: "runtime"});
 
 **Solution**:
 ```javascript
-const result = validate_node_operation({...});
+const result = JSON.parse(execSync("n8nctl workflow validate <file> --profile ci --json"));
 
 // 1. Fix errors (must fix)
 result.errors.forEach(error => {
@@ -903,16 +896,14 @@ result.suggestions.forEach(sug => {
 });
 ```
 
-### Pattern 3: Use get_node
+### Pattern 3: Inspect the node schema
 
 **Problem**: Don't know what's required
 
 **Solution**:
 ```javascript
 // Before configuring, check requirements
-const info = get_node({
-  nodeType: "nodes-base.slack"
-});
+// info = node schema from: n8nctl workflow schema --node nodes-base.slack
 
 // Look for required fields
 info.properties.forEach(prop => {
@@ -927,7 +918,7 @@ info.properties.forEach(prop => {
 ## Summary
 
 **Most Common Errors**:
-1. `missing_required` (45%) - Always check get_node
+1. `missing_required` (45%) - Always check the node schema (`n8nctl workflow schema --node`)
 2. `invalid_value` (28%) - Check allowed values
 3. `type_mismatch` (12%) - Use correct data types
 4. `invalid_expression` (8%) - Use Expression Syntax skill
@@ -940,4 +931,4 @@ info.properties.forEach(prop => {
 - **[SKILL.md](SKILL.md)** - Main validation guide
 - **[FALSE_POSITIVES.md](FALSE_POSITIVES.md)** - When to ignore warnings
 - **n8n Expression Syntax** - Fix expression errors
-- **n8n MCP Tools Expert** - Use validation tools correctly
+- **n8nctl validation (see the `n8nctl` skill)** - Use validation tools correctly

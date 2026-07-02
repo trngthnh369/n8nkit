@@ -530,29 +530,17 @@ Many warnings are context-dependent:
 
 **Development**:
 ```javascript
-validate_node({
-  nodeType: "nodes-base.slack",
-  config,
-  profile: "ai-friendly"  // Fewer warnings during development
-})
+n8nctl workflow validate <file> --profile ci   // node nodes-base.slack (was profile "ai-friendly")
 ```
 
 **Pre-Production**:
 ```javascript
-validate_node({
-  nodeType: "nodes-base.slack",
-  config,
-  profile: "runtime"  // Balanced validation
-})
+n8nctl workflow validate <file> --profile ci   // node nodes-base.slack (was profile "runtime")
 ```
 
 **Production Deployment**:
 ```javascript
-validate_node({
-  nodeType: "nodes-base.slack",
-  config,
-  profile: "strict"  // All warnings, review each one
-})
+n8nctl workflow validate <file> --profile ci   // node nodes-base.slack (was profile "strict")
 ```
 
 ### Strategy 2: Profile by Workflow Type

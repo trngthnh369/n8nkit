@@ -5,7 +5,7 @@ description: Interpret validation errors and guide fixing them. Use when encount
 
 # n8n Validation Expert
 
-> **⚠️ IMPORTANT:** `n8n-mcp` is NOT installed — any `validate_node`/`n8n_create_workflow`/`n8n_update_partial_workflow` MCP refs are **LEGACY, do not use**. Validate via **`n8nctl workflow validate <file> --strict`** (wraps `@trngthnh369/n8n-workflow-validator`, the source of truth). The local **7-layer** validator (structural, node-sanity, referential, expression-balance, secrets [~18 patterns], param-types via 36-node catalog, settings-hygiene) is also runnable as `node <workflowRoot>/_pipeline/validate.js <file>` (a thin shim over the same package).
+> **Tooling:** validate via **`n8nctl workflow validate <file> --strict`** (wraps `@trngthnh369/n8n-workflow-validator`, the source of truth). The **7-layer** validator (structural, node-sanity, referential, expression-balance, secrets [~18 patterns], param-types via 36-node catalog, settings-hygiene) also runs as `node <workflowRoot>/_pipeline/validate.js <file>` (a thin shim over the same package). The API-call snippets in the reference files are illustrative — use the n8nctl commands.
 
 ## Validation Philosophy
 
