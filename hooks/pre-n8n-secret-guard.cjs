@@ -6,7 +6,7 @@
 // inlined provider set (blocking never silently disappears) and warn loudly.
 const fs = require('fs');
 const path = require('path');
-const { safeHook, readInput } = require('./_lib.cjs');
+const { safeHook, readInput, isWorkflowJsonPath, extractWriteContent } = require('./_lib.cjs');
 
 // Inlined fallback — the high-entropy provider patterns only (action=block). Used if secret-patterns.json is missing.
 const FALLBACK_BLOCK = [
@@ -44,11 +44,13 @@ function loadPatterns() {
 function main() {
   safeHook('pre-n8n-secret-guard', () => {
     const data = readInput();
-    const file = (data.tool_input && data.tool_input.file_path) || '';
-    const content = (data.tool_input && (data.tool_input.content || data.tool_input.new_string)) || '';
+    const file = (data.tool_input && (data.tool_input.file_path || data.tool_input.notebook_path)) || '';
+    const content = extractWriteContent(data.tool_input);
 
-    const isWorkflowJson = /build-workflow[\\/].*\.json$/i.test(file);
+    // config-driven workflow-root detection (env / ancestor .n8nkit config / legacy build-workflow fallback)
+    const isWorkflowJson = isWorkflowJsonPath(file, data);
     // Claude config: settings.json + any .bak under ~/.claude (plaintext keys leaked here before — 2026-06-10)
+    // PRESERVED VERBATIM — negative-tested compensating control for bypassPermissions mode.
     const isClaudeConfig = /[\\/]\.claude[\\/](settings\.json|.*\.bak[^\\/]*)$/i.test(file);
     if (!isWorkflowJson && !isClaudeConfig) return;
 

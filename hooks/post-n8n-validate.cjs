@@ -5,7 +5,7 @@
 // FAIL-LOUD: if the validator (n8nctl) can't run, says so loudly — never silently pretends "valid".
 const fs = require('fs');
 const { execSync } = require('child_process');
-const { safeHook, readInput } = require('./_lib.cjs');
+const { safeHook, readInput, isWorkflowJsonPath } = require('./_lib.cjs');
 
 // Full n8n export key set — warn only on keys OUTSIDE this (genuinely unknown), not on normal id/active/meta/etc.
 const KNOWN_TOP_LEVEL = new Set([
@@ -16,7 +16,7 @@ const KNOWN_TOP_LEVEL = new Set([
 safeHook('post-n8n-validate', () => {
   const data = readInput();
   const file = (data.tool_input && data.tool_input.file_path) || '';
-  if (!/build-workflow[\\/].*\.json$/i.test(file)) return; // scope: workflow JSON only
+  if (!isWorkflowJsonPath(file, data)) return; // scope: workflow JSON only (config-driven root + legacy fallback)
 
   let wf;
   try {

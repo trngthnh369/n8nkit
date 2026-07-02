@@ -76,6 +76,44 @@ check('draft (incomplete JSON) → SILENT (exit 0, no spam)', r.code === 0 && r.
 r = run('post-n8n-validate.cjs', { tool_input: { file_path: fValid } });
 check('valid workflow → exit 0', r.code === 0, `code=${r.code} out=${r.out.trim()}`);
 
+console.log('== config-driven workflowRoot (unit) ==');
+const lib = require(path.join(HOOKS, '_lib.cjs'));
+// A workflow root that does NOT contain the literal "build-workflow" segment, marked by .n8nkit/config.json.
+const CFG_ROOT = path.join(os.tmpdir(), 'n8nkit-test-cfg', 'my-n8n-projects');
+const CFG_SUB = path.join(CFG_ROOT, 'projA', 'workflow');
+fs.mkdirSync(CFG_SUB, { recursive: true });
+fs.mkdirSync(path.join(CFG_ROOT, '.n8nkit'), { recursive: true });
+fs.writeFileSync(path.join(CFG_ROOT, '.n8nkit', 'config.json'), JSON.stringify({ workflowRoot: CFG_ROOT }));
+const cfgWf = path.join(CFG_SUB, 'wf.json');
+
+check('ancestor-walk from file finds config root (non-build-workflow path)', lib.isWorkflowJsonPath(cfgWf, {}) === true);
+check('non-.json under config root → not workflow', lib.isWorkflowJsonPath(path.join(CFG_SUB, 'notes.txt'), {}) === false);
+check('legacy build-workflow fallback still matches (no config)', lib.isWorkflowJsonPath('X:/x/build-workflow/p/wf.json', {}) === true);
+check('unrelated path, no config, no legacy → not workflow', lib.isWorkflowJsonPath('X:/random/wf.json', {}) === false);
+// payload cwd (NOT process.cwd): file ancestors lack config, but input.cwd's ancestor has one.
+check('resolveWorkflowRoot uses payload cwd when file ancestors lack config',
+  lib.resolveWorkflowRoot(path.join(os.tmpdir(), 'nowhere-xyz', 'x.json'), { cwd: CFG_SUB }) === CFG_ROOT);
+check('resolveWorkflowRoot does NOT use process.cwd (no cwd, no config ancestor → null)',
+  lib.resolveWorkflowRoot(path.join(os.tmpdir(), 'nowhere-xyz', 'x.json'), {}) === null);
+// env override
+process.env.N8NKIT_WORKFLOW_ROOT = path.join(os.tmpdir(), 'n8nkit-env-root');
+check('env N8NKIT_WORKFLOW_ROOT override', lib.isWorkflowJsonPath(path.join(process.env.N8NKIT_WORKFLOW_ROOT, 'a.json'), {}) === true);
+delete process.env.N8NKIT_WORKFLOW_ROOT;
+
+console.log('== secret-guard: config-driven scope + MultiEdit + isClaudeConfig ==');
+r = run('pre-n8n-secret-guard.cjs', { cwd: os.tmpdir(), tool_input: { file_path: cfgWf, content: 'AKIAIOSFODNN7EXAMPLE1' } });
+check('AWS key in config-scoped path (no build-workflow) → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
+
+r = run('pre-n8n-secret-guard.cjs', { tool_input: { file_path: cfgWf, edits: [{ old_string: 'a', new_string: 'harmless' }, { old_string: 'b', new_string: 'AKIAIOSFODNN7EXAMPLE1' }] } });
+check('MultiEdit edits[] array carrying AWS key → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
+
+const claudeCfgPath = path.join('C', 'Users', 'x', '.claude', 'settings.json').replace(/^C/, 'C:');
+r = run('pre-n8n-secret-guard.cjs', { tool_input: { file_path: claudeCfgPath, content: '{"key":"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.dozjgNryP4J3jVmNHl0w5Nxyz"}' } });
+check('JWT into ~/.claude/settings.json (isClaudeConfig preserved) → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
+
+r = run('pre-n8n-secret-guard.cjs', { cwd: os.tmpdir(), tool_input: { file_path: cfgWf, content: '{"note":"clean, no secret"}' } });
+check('clean content in config-scoped path → silent (exit 0)', r.code === 0 && r.out.trim() === '', `code=${r.code} out=${r.out.trim()}`);
+
 console.log('== secret-pattern single-source (fallback ⊆ json) ==');
 // The crash-safe inlined FALLBACK_BLOCK must be a SUBSET of the canonical secret-patterns.json:
 // it may never block something the json wouldn't. Some fallback entries are COMBINED regexes
