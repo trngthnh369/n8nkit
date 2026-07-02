@@ -105,12 +105,28 @@ Full command reference: run `n8nctl --help` or see `n8nctl (skill)` skill.
 
 ## Project bootstrap (new project)
 
-When creating a new n8n project folder, bootstrap Claude Code context:
+When creating a new n8n project folder (this is `/n8n-init` — folded here; not a separate skill), run this
+checklist. Templates come from `<workflowRoot>/_templates/` or, if absent, the plugin-bundled
+`<pluginRoot>/templates/` (two dirs up from a skill's SKILL.md).
+
 ```bash
 PROJECT="new-project-name"
-cp _templates/project-bootstrap/CLAUDE.md.template <project>/CLAUDE.md
-cp _templates/project-bootstrap/.claudeignore.template <project>/.claudeignore
-# Then edit CLAUDE.md → fill {{PLACEHOLDERS}}
+mkdir -p "<workflowRoot>/$PROJECT"/{workflow,_backups,docs}
+
+# 1. Claude Code context
+cp <templates>/project-bootstrap/CLAUDE.md.template "<workflowRoot>/$PROJECT/CLAUDE.md"   # then fill {{PLACEHOLDERS}}
+
+# 2. n8nkit config (so the config-driven guards scope correctly) — copy + edit workflowRoot if needed
+cp <pluginRoot>/.n8nkit/config.json        "<workflowRoot>/$PROJECT/.n8nkit/config.json"
+cp <pluginRoot>/.n8nkit/config.schema.json "<workflowRoot>/$PROJECT/.n8nkit/config.schema.json"
+
+# 3. .gitignore — never commit session/env files or raw backups
+printf '%s\n' 'scripts/.n8n-session.env' 'scripts/.n8n-cookie.json' '*.env' '_backups/*.json' > "<workflowRoot>/$PROJECT/.gitignore"
+
+# 4. first workflow skeleton (n8nctl 1.0)
+n8nctl workflow scaffold --from webhook --name "$PROJECT" -o "<workflowRoot>/$PROJECT/workflow/$PROJECT.json"
+
+git -C "<workflowRoot>/$PROJECT" init
 ```
 
 See `_templates/project-bootstrap/README.md` for placeholder table.

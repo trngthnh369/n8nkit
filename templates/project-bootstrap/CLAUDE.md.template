@@ -1,0 +1,97 @@
+# CLAUDE.md — Project: {{PROJECT_NAME}}
+
+> Global profile đã ở `~/.claude/CLAUDE.md`. File này chỉ chứa context riêng cho project này.
+> Copy file này thành `CLAUDE.md` tại root project, thay `{{PLACEHOLDERS}}` bằng values thực.
+
+## Project Info
+
+- **Mục đích**: {{PROJECT_PURPOSE}}
+- **Tier**: `orchestrator` | `hub` | `utility`
+- **Production host**: `$N8N_HOST` (thường là n8npc.khoahrv.id.vn)
+- **Owner**: {{OWNER}}
+- **Status**: `active` | `deprecated` | `experimental`
+
+## Architecture
+
+### Tier của project
+
+- [ ] **Orchestrator** — route events to hubs (main webhook router)
+- [ ] **Hub** — domain logic, multiple operations
+- [ ] **Utility** — single-purpose helper
+
+### Workflow list
+
+| Workflow | Purpose | Trigger | Status |
+|----------|---------|---------|--------|
+| {{WORKFLOW_NAME}} | {{PURPOSE}} | webhook/schedule/manual | active |
+
+### Dependencies
+
+- **External APIs**: {{LIST}} (e.g., Meta Graph API v19.0, Google Sheets, OpenAI)
+- **Credentials**: {{LIST}} (e.g., `meta-api-pierre`, `gmail-it01`)
+- **Sub-workflows called**: {{LIST}} từ projects khác
+
+## Conventions (project-specific)
+
+### Naming
+- Workflows: `{{project-prefix}}-{{purpose}}-v{{N}}` (e.g., `kpi-daily-sync-v2`)
+- Tags: `{{project}}:{{tier}}`
+- Node names: descriptive (not "HTTP Request" → "Get User Profile")
+
+### Code nodes
+- Default language: JavaScript (trừ khi spec nói Python)
+- Use `$helpers.httpRequest` cho HTTP (JS)
+- Use `DateTime` cho Luxon
+- Always `await` async
+
+### Error handling
+- Tất cả HTTP/DB nodes PHẢI có `onError` config
+- Retry 3 lần cho transient errors (`retryOnFail: true, maxTries: 3`)
+- Error workflow reference: `{{ERROR_WORKFLOW_ID}}`
+
+## Build/Deploy Commands
+
+```bash
+# Validate local
+node D:/Projects/work/build-workflow/_pipeline/validate.js workflow/<file>.json
+
+# Backup workflow
+n8nctl workflow backup <id> --out _backups/
+
+# Deploy
+n8nctl workflow update <id> --file workflow/<file>.json
+
+# Test
+n8nctl workflow trigger <id> --input test-data.json
+
+# Rollback
+# (auto via /n8n-rollback command)
+```
+
+## Testing
+
+### Test data
+- Location: `./test-data/` (fixture inputs)
+- Format: JSON matching expected webhook/trigger payload
+
+### Test gate (Cần + Đủ)
+- **Cần**: Workflow executes without error
+- **Đủ**: Output matches expected schema + business logic correct
+
+### Manual test checklist
+- [ ] Webhook trigger responds correctly
+- [ ] Happy path produces expected output
+- [ ] Error path routes to error handler
+- [ ] Rate limit handled (if external API)
+
+## Known Issues / Quirks
+
+- {{KNOWN_ISSUE_1}}
+- {{WORKAROUND_1}}
+
+## Related
+
+- **Main docs**: `./docs/` (nếu có)
+- **Backups**: `./_backups/` (auto-managed)
+- **Wiki**: query `wiki-query` skill với topic `{{project-name}}`
+- **Slash commands**: `/n8n-build`, `/n8n-deploy`, `/n8n-test`, `/n8n-fix`, `/n8n-rollback`

@@ -1,0 +1,134 @@
+{
+  "name": "TEMPLATE_ORCHESTRATOR",
+  "nodes": [
+    {
+      "id": "a1111111-1111-1111-1111-111111111111",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "orchestrator-entry",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "a2222222-2222-2222-2222-222222222222",
+      "name": "Normalize Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [460, 300],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f1",
+              "name": "route",
+              "value": "={{ $json.body?.route || 'default' }}",
+              "type": "string"
+            },
+            {
+              "id": "f2",
+              "name": "payload",
+              "value": "={{ $json.body }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a3333333-3333-3333-3333-333333333333",
+      "name": "Route By Task",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [680, 300],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "hub_a",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "hub_a"
+            }
+          ]
+        },
+        "options": { "fallbackOutput": "extra" }
+      }
+    },
+    {
+      "id": "a4444444-4444-4444-4444-444444444444",
+      "name": "Call Hub A",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [900, 220],
+      "parameters": {
+        "workflowId": { "__rl": true, "mode": "list", "value": "REPLACE_WITH_HUB_A_ID" },
+        "workflowInputs": { "mappingMode": "defineBelow", "value": {} },
+        "options": {}
+      }
+    },
+    {
+      "id": "a5555555-5555-5555-5555-555555555555",
+      "name": "Unknown Route",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [900, 380],
+      "parameters": {
+        "errorMessage": "=Unknown route: {{ $json.route }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "a6666666-6666-6666-6666-666666666666",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, result: $json } }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [[{ "node": "Normalize Input", "type": "main", "index": 0 }]]
+    },
+    "Normalize Input": {
+      "main": [[{ "node": "Route By Task", "type": "main", "index": 0 }]]
+    },
+    "Route By Task": {
+      "main": [
+        [{ "node": "Call Hub A", "type": "main", "index": 0 }],
+        [{ "node": "Unknown Route", "type": "main", "index": 0 }]
+      ]
+    },
+    "Call Hub A": {
+      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "timezone": "Asia/Ho_Chi_Minh"
+  },
+  "tags": ["template", "tier:orchestrator"]
+}

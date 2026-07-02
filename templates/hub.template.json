@@ -1,0 +1,108 @@
+{
+  "name": "TEMPLATE_HUB",
+  "nodes": [
+    {
+      "id": "b1111111-1111-1111-1111-111111111111",
+      "name": "When Called by Orchestrator",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"action\": \"process\",\n  \"payload\": {}\n}"
+      }
+    },
+    {
+      "id": "b2222222-2222-2222-2222-222222222222",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [460, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b3333333-3333-3333-3333-333333333333",
+      "name": "Call Utility Fetch",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [680, 220],
+      "parameters": {
+        "workflowId": { "__rl": true, "mode": "list", "value": "REPLACE_WITH_UTILITY_FETCH_ID" },
+        "workflowInputs": { "mappingMode": "defineBelow", "value": {} },
+        "options": {}
+      }
+    },
+    {
+      "id": "b4444444-4444-4444-4444-444444444444",
+      "name": "Transform",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 220],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Transform utility output into hub-level result shape.\nconst items = $input.all();\nreturn items.map(item => ({\n  json: {\n    ok: true,\n    data: item.json,\n    processedAt: new Date().toISOString()\n  }\n}));"
+      }
+    },
+    {
+      "id": "b5555555-5555-5555-5555-555555555555",
+      "name": "Call Utility Write",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1120, 220],
+      "parameters": {
+        "workflowId": { "__rl": true, "mode": "list", "value": "REPLACE_WITH_UTILITY_WRITE_ID" },
+        "workflowInputs": { "mappingMode": "defineBelow", "value": {} },
+        "options": {}
+      }
+    },
+    {
+      "id": "b6666666-6666-6666-6666-666666666666",
+      "name": "Invalid Input Error",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [680, 420],
+      "parameters": {
+        "errorMessage": "Hub received invalid input: action field is empty",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "When Called by Orchestrator": {
+      "main": [[{ "node": "Validate Input", "type": "main", "index": 0 }]]
+    },
+    "Validate Input": {
+      "main": [
+        [{ "node": "Call Utility Fetch", "type": "main", "index": 0 }],
+        [{ "node": "Invalid Input Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Call Utility Fetch": {
+      "main": [[{ "node": "Transform", "type": "main", "index": 0 }]]
+    },
+    "Transform": {
+      "main": [[{ "node": "Call Utility Write", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "timezone": "Asia/Ho_Chi_Minh"
+  },
+  "tags": ["template", "tier:hub"]
+}

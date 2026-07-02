@@ -54,6 +54,10 @@ Copy the tier template as the base skeleton:
 - hub → `<workflowRoot>/_templates/hub.template.json`
 - utility → `<workflowRoot>/_templates/utility.template.json`
 
+If `<workflowRoot>/_templates/` is missing, fall back to the plugin-bundled copies at
+`<pluginRoot>/templates/` (`<pluginRoot>` = two dirs up from this SKILL.md). Editing a template = a normal
+file edit + `n8nctl workflow validate` — no dedicated skill needed.
+
 **Never build workflow JSON from a blank file.** Always start from template and modify nodes.
 
 ### Step 4 — Modify template
