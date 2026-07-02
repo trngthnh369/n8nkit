@@ -1,6 +1,6 @@
 ---
 name: n8nctl
-description: Operate an n8n instance via the `n8nctl` CLI (package `@trngthnh369/n8nctl`, installed globally). Use when user asks to list, create, update, trigger, debug, backup, restore, watch, validate, or manage n8n workflows / executions / credentials / tags. Requires N8N_HOST + N8N_API_KEY env vars OR a configured n8nctl profile. Curl fallback documented for edge cases the CLI does not cover.
+description: Operate an n8n instance via the `n8nctl` CLI (package `@trngthnh369/n8nctl` v1.0, installed globally). Use when user asks to list, create, update, trigger, debug, backup, restore, watch, validate, verify, promote, scaffold, audit, inspect node schema, or manage n8n workflows / executions / credentials / tags / variables. Requires N8N_HOST + N8N_API_KEY env vars OR a configured n8nctl profile. Curl fallback documented for edge cases the CLI does not cover.
 allowed-tools: "Bash Read Write Edit"
 ---
 
@@ -9,7 +9,7 @@ allowed-tools: "Bash Read Write Edit"
 > **🎯 Preferred tool: `n8nctl` CLI** (package `@trngthnh369/n8nctl`, installed globally).
 > Fall back to curl only when: (a) the CLI doesn't cover the operation, or (b) you need raw HTTP for debugging.
 
-The CLI wraps the n8n REST API with retry, auth layering, --dry-run, --json/--jq/--template output, and typed exit codes (0 OK, 1 API, 2 auth, 3 validation, 4 network, 5 internal).
+The CLI (v1.0, contracts frozen — see `docs/CONTRACTS.md` in the n8nctl repo) wraps the n8n REST API with retry, auth layering, --dry-run, --json/--jq/--template output, and typed exit codes: **0** OK · **1** API · **2** auth · **3** validation · **4** network · **5** internal · **6** assertion-failed (a `workflow verify` gate did NOT pass — a real failed assertion, distinct from an infra error 1–5).
 
 ---
 
@@ -32,21 +32,33 @@ n8nctl workflow backup <id> [-o <dir>]
 n8nctl workflow watch [--workflow <id>] [--status <s>] [--interval <ms>]   # v0.2: realtime tail
 n8nctl workflow delete <id> [--yes]
 n8nctl workflow validate <file.json> [--strict]            # v0.5: +E070 settings-no-logs, E071 node-id-not-uuid, E072 typeVersion-outdated
+n8nctl workflow verify <id> [--execution <id>] [--expect-fields a,b,c] [--run]   # assertion gate — exit 6 if it fails (NOT an infra error)
 n8nctl workflow normalize <file.json> [-o <out>] [-w]      # v0.5: fix node-id→UUID + inject save-log settings (deterministic). create/update auto-normalize (--no-normalize to skip)
 n8nctl workflow diff <id> <file.json>                      # preview changes
 n8nctl workflow restore <backup.json> [--activate]
 n8nctl workflow tag <id> <tag-names...> [--replace --create]
 n8nctl workflow export-all -o <dir> [--active --tag <t>]
 n8nctl workflow import <dir> [--force --activate]
+n8nctl workflow promote <id> --to <profile> [--from <profile>] [--map <file>] [--allow-unmapped] [--out-dir <dir>] [--activate]  # v1.0: cross-instance promotion w/ live-validated credential remap
+n8nctl workflow scaffold --from <webhook|cron|manual> [--name <n>] [--webhook-path <p>]   # v1.0: generate a starter workflow JSON
+n8nctl workflow schema --node <type>            # v1.0: node param schema (accepts short names, e.g. "http"); --list = all catalog node types
 ```
 
 ### Execution
 ```bash
 n8nctl execution list [--workflow <id>] [--status <s>] [--limit <n>]
 n8nctl execution get <id> [--logs]
+n8nctl execution logs <id> [--node <name>] [--errors-only] [--io-data] [--unsafe-raw-io]   # v1.0: per-node run logs
 n8nctl execution retry <id>
 n8nctl execution wait <id> [--timeout <ms>]     # poll until terminal
 n8nctl execution last-error --workflow <id> [--summary]
+```
+
+### Governance (v1.0)
+```bash
+n8nctl audit [--categories credentials,database,nodes,filesystem,instance] [--days-abandoned <n>]   # instance health / risk report
+n8nctl variable {list|set|delete}                 # n8n instance variables
+n8nctl source-control pull [--force] [--backup-dir <dir>]   # git source-control; ALWAYS snapshots all workflows first
 ```
 
 ### Credential / Tag / Auth / Config / Profile / Doctor / Completion
@@ -196,14 +208,16 @@ n8nctl --profile dev workflow list    # one-shot override
 
 ---
 
+## Behavioral contracts (relied on by the review/monitor/credentials skills)
+
+- **Execution IO is redacted BY DEFAULT.** `execution logs <id>` and `workflow get --redact` scrub secrets (auth headers, tokens, cookies, credential data). `--io-data` opts into per-node output but it is **still redacted + trimmed** (≈2000 chars/field). `--unsafe-raw-io` disables redaction and prints a warning — **skills must NEVER use it**.
+- **Assertion vs infra failure**: only exit **6** means "a `verify` gate assertion failed". Exit 1–5 are infra/auth/validation errors — do not treat them as a failed test.
+- **`credential list`** derives from workflow nodes (no `GET /credentials` endpoint) and returns NAMES/types, never secret values.
+- **Redaction is defense; not a license** — still avoid piping artifacts that contain business data to external tools.
+
 ## Raw curl fallback (avoid unless necessary)
 
-Use curl ONLY when the CLI doesn't cover something (rare — mostly never):
-
-```bash
-# base
-curl -s -H "X-N8N-API-KEY: $N8N_API_KEY" "$N8N_HOST/api/v1/<endpoint>"
-```
+Use curl ONLY when the CLI genuinely doesn't cover something: `curl -s -H "X-N8N-API-KEY: $N8N_API_KEY" "$N8N_HOST/api/v1/<endpoint>"`.
 
 ### Important API quirks (not obvious)
 - **NO `/workflows/:id/execute` in the PUBLIC API** — but `n8nctl workflow run` (v0.5) executes headless via the internal `/rest/.../run` (session cookie auth), the same endpoint the UI "Execute Workflow" button uses. Use `workflow run` for manual/scheduled/sub-workflows; `trigger-webhook` for webhook-path tests.
