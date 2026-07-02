@@ -114,6 +114,48 @@ check('JWT into ~/.claude/settings.json (isClaudeConfig preserved) → BLOCK (ex
 r = run('pre-n8n-secret-guard.cjs', { cwd: os.tmpdir(), tool_input: { file_path: cfgWf, content: '{"note":"clean, no secret"}' } });
 check('clean content in config-scoped path → silent (exit 0)', r.code === 0 && r.out.trim() === '', `code=${r.code} out=${r.out.trim()}`);
 
+console.log('== pre-bash-n8n-prod-guard ==');
+// Project WITH a fresh approval artifact.
+const PROJ = path.join(os.tmpdir(), 'n8nkit-test-proj');
+const ARTF = path.join(PROJ, '.claude', 'artifacts', 'n8n-fix-123');
+fs.mkdirSync(ARTF, { recursive: true });
+const marker = path.join(ARTF, 'context-snippets.json');
+fs.writeFileSync(marker, JSON.stringify({ workflow_id: '123' }));
+// Project with its OWN empty artifacts dir (hermetic: findArtifactsDir stops here, finds nothing).
+const EMPTY = path.join(os.tmpdir(), 'n8nkit-test-empty');
+fs.mkdirSync(path.join(EMPTY, '.claude', 'artifacts'), { recursive: true });
+
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: PROJ, tool_input: { command: 'n8nctl workflow update 42 wf.json' } });
+check('mutating verb + fresh artifact → allowed (exit 0)', r.code === 0 && r.out.trim() === '', `code=${r.code} out=${r.out.trim()}`);
+
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: 'n8nctl workflow update 42 wf.json' } });
+check('mutating verb + no artifact → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
+
+const stale = Date.now() / 1000 - 40 * 60;
+fs.utimesSync(marker, stale, stale);
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: PROJ, tool_input: { command: 'n8nctl workflow promote 42 --to prod' } });
+check('mutating verb + stale artifact (>30min) → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
+const fresh = Date.now() / 1000;
+fs.utimesSync(marker, fresh, fresh);
+
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: 'n8nctl workflow get 42 --json' } });
+check('read verb → silent (exit 0)', r.code === 0 && r.out.trim() === '', `code=${r.code} out=${r.out.trim()}`);
+
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: 'ls -la && echo hi' } });
+check('non-n8nctl command → silent (exit 0)', r.code === 0 && r.out.trim() === '', `code=${r.code} out=${r.out.trim()}`);
+
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: 'n8nctl workflow update 42 wf.json --dry-run' } });
+check('mutating verb --dry-run → allowed (exit 0)', r.code === 0 && r.out.trim() === '', `code=${r.code} out=${r.out.trim()}`);
+
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: 'n8nctl credential create ./cred.json' } });
+check('credential create + no artifact → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
+
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: "echo 'AKIAIOSFODNN7EXAMPLE1' > /x/build-workflow/wf.json" } });
+check('shell-write of AWS key into workflow json → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
+
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: "echo '{}' > /x/build-workflow/wf.json" } });
+check('benign shell-write (no secret) → silent (exit 0)', r.code === 0 && r.out.trim() === '', `code=${r.code} out=${r.out.trim()}`);
+
 console.log('== secret-pattern single-source (fallback ⊆ json) ==');
 // The crash-safe inlined FALLBACK_BLOCK must be a SUBSET of the canonical secret-patterns.json:
 // it may never block something the json wouldn't. Some fallback entries are COMBINED regexes
