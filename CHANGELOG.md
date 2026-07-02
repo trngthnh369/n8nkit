@@ -5,8 +5,29 @@ this project uses semver-ish tags on a local (no-remote) repo.
 
 ## [Unreleased]
 
-- P3 machine migration (operational), P4 new skills (n8n-review/monitor/promote/credentials/docs),
-  P5 n8nctl `node` live-catalog verbs, P6 failure→fix E2E.
+- P3 machine migration (operational — user-gated), P5 n8nctl `node` live-catalog verbs, P6 failure→fix E2E.
+
+## [0.3.0] — 2026-07-02 — Full-cycle skills
+
+### Added
+- **`n8n-review`** — six-lens read-only review (correctness/security/cost/performance/error-handling/
+  maintainability) with a scored artifact; the static lint folds in as the correctness lens.
+- **`n8n-monitor`** — read-only instance/workflow health + execution analytics; classifies failures and
+  routes to fix/credentials/promote.
+- **`n8n-promote`** — cross-instance promotion + drift `--check`; thin gated layer over `n8nctl workflow
+  promote` with credential-mapping review.
+- **`n8n-credentials`** — the only skill that touches credentials (audit/create/rotate); Claude never
+  writes secret values; hardened temp files.
+- **`n8n-docs`** — runbook + mermaid + node/credential table from a redacted workflow; reads a
+  `docs/spec-*.md` when present (closes the intake→docs loop).
+- Bundled tier templates (`templates/`) — `n8n-template` folded to a versioned asset; `n8n-init` folded
+  into the n8n-pipeline bootstrap checklist.
+
+### Changed
+- `n8n-pipeline` routes all 19 skills with an explicit cross-skill-handoff section
+  (build→review→deploy, fix/deploy credential-stop→credentials, monitor→fix/credentials/promote).
+- Wave order: read-only skills (review/monitor/docs) before mutating skills (promote/credentials), which
+  rely on the `pre-bash-n8n-prod-guard` gate.
 
 ## [0.2.0] — 2026-07-02 — Plugin era
 
