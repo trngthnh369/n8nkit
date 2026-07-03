@@ -7,7 +7,8 @@
 #>
 $ErrorActionPreference = 'Stop'
 $Claude    = Join-Path $HOME '.claude'
-$Expected  = '0.2.0'
+$RepoRoot  = Split-Path -Parent $PSScriptRoot
+$Expected  = (Get-Content (Join-Path $RepoRoot '.claude-plugin\plugin.json') -Raw | ConvertFrom-Json).version
 $N8nSkills = @('n8n-intake','n8n-build','n8n-deploy','n8n-test','n8n-fix','n8n-rollback','n8n-pipeline',
                'n8n-workflow-patterns','n8n-node-configuration','n8n-integrations','n8n-expression-syntax',
                'n8n-code-javascript','n8n-validation-expert','n8nctl')
