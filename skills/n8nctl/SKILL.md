@@ -61,6 +61,17 @@ n8nctl variable {list|set|delete}                 # n8n instance variables
 n8nctl source-control pull [--force] [--backup-dir <dir>]   # git source-control; ALWAYS snapshots all workflows first
 ```
 
+### Live node catalog (v1.1)
+```bash
+n8nctl node list [--search <text>] [--community] [--refresh]      # node types on THIS instance (incl. community)
+n8nctl node describe <type> [--property <name>] [--required-only] # live schema: params, versions, credentials
+n8nctl node search <text>                                        # sugar for `node list --search`
+```
+Reads the instance's own editor catalog (`/types/nodes.json`) — exact node set + typeVersions for this
+instance's n8n version, community nodes included. **Requires session auth** (`n8nctl auth login --session`)
+— the asset is behind editor auth, so the API key 401s. Cached 24h (`--refresh` to bust). `describe` accepts
+full (`n8n-nodes-base.httpRequest`), short (`httpRequest`), or fuzzy (`http`) names.
+
 ### Credential / Tag / Auth / Config / Profile / Doctor / Completion
 ```bash
 n8nctl credential list [--type <t>]                     # derived from workflow nodes

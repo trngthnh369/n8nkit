@@ -7,7 +7,9 @@ PASS = clean. Cite node names as evidence.
 
 - [ ] `n8nctl workflow validate --profile ci` passes (gate zero). FAIL if not.
 - [ ] Every `{{ }}` expression references a node/field that exists upstream (no `$node["X"]` for a missing X).
-- [ ] Node params valid for the node's `typeVersion` — cross-check with `n8nctl workflow schema --node <type>`.
+- [ ] Node params valid for the node's `typeVersion` — cross-check with `n8nctl node describe <type>` (live
+      catalog, exact for this instance; probe `n8nctl node --help`, needs `auth login --session`) or fall
+      back to `n8nctl workflow schema --node <type>` / the offline `n8n-node-configuration` catalog.
 - [ ] Required fields present per operation (resource/operation cascades — Slack messageId on update, etc.).
 - [ ] No orphan nodes / dead branches (nodes with no path from the trigger).
 - [ ] Trigger is wired and appropriate (webhook path set, schedule cron valid).

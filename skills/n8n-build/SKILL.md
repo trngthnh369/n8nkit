@@ -41,7 +41,7 @@ Extract from arguments:
 ### Step 2 — Research (mandatory, do not skip)
 Use these skills/agents in parallel:
 1. **n8n-workflow-patterns** skill → find matching workflow pattern (+ node cheat-sheet, ecommerce recipes)
-2. **n8n-node-configuration** skill → confirm correct node types and typeVersion for the required operations
+2. **n8n-node-configuration** skill → confirm correct node types and typeVersion. **Prefer the live catalog** when available: `n8nctl node describe <type>` gives the exact params + current typeVersion for THIS instance (probe `n8nctl node --help`; needs `auth login --session`). Falls back silently to the offline catalog + `n8nctl workflow schema --node` if unavailable — never block the build on it.
 3. **n8n-integrations** skill → verify credential/auth patterns for any external API
 4. **n8n-expression-syntax** skill → validate expression syntax you plan to use
 5. If the task touches an existing domain (ai-ads-manager, ai-kpi-manager, etc.), Read 1-2 existing workflow JSONs from that project for conventions

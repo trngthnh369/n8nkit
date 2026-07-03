@@ -5,7 +5,15 @@ description: Operation-aware node configuration for n8n workflows. Use when conf
 
 # n8n Node Configuration
 
-> **Tooling:** node discovery + schema via `n8nctl workflow schema --node <type>` (see the `n8nctl` skill) or the **inline catalog** below; validate with `n8nctl workflow validate <file> --profile ci` (Layer 6 checks param types). The API-call snippets in the reference files are illustrative — use the n8nctl commands.
+> **Live catalog (preferred when available):** `n8nctl node describe <type>` returns the EXACT schema for
+> this instance's n8n version, community nodes included — the source of truth. **Degradation contract:**
+> probe once with `n8nctl node --help` (exit 0 = verbs exist, n8nctl ≥ 1.1); using them needs
+> `n8nctl auth login --session`. On verb-missing OR auth/network failure, **silently fall back** to the
+> inline catalog below + `n8nctl workflow schema --node <type>`. Never fail a build/review because the live
+> catalog is unavailable.
+>
+> **Tooling:** validate with `n8nctl workflow validate <file> --profile ci` (Layer 6 checks param types).
+> The API-call snippets in the reference files are illustrative — use the n8nctl commands.
 
 ## Core Principles
 

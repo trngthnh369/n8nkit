@@ -3,16 +3,25 @@
 All notable changes to n8nkit. Format follows [Keep a Changelog](https://keepachangelog.com/);
 this project uses semver-ish tags on a local (no-remote) repo.
 
-## [Unreleased]
+## [0.4.0] — 2026-07-03 — Live node catalog integration
 
 ### Added
+- Integrate the n8nctl 1.1 **live node catalog** with a graceful-degradation contract: `n8n-build`,
+  `n8n-node-configuration`, `n8n-review`, and the `n8nctl` skill now prefer `n8nctl node describe <type>`
+  (exact schema for this instance, community nodes included) and **silently fall back** to the offline
+  catalog + `n8nctl workflow schema --node` when the verb is missing or session auth is unavailable — a
+  build/review never fails because the live catalog is down.
 - `scripts/e2e-fix-loop.sh` — failure→fix→redeploy E2E (run-by-user; needs session auth).
 - test-hooks harness: `post-bash-n8nctl-diagnose` coverage + `hooks.json` manifest lint (50 → 58 assertions).
 
-### Pending (user-gated / separate release)
-- **P3** machine migration to the plugin runtime (fresh-session verification — see NOTES-followups).
-- **P5** n8nctl `node` live-catalog verbs (cross-repo `n8nctl` 1.1.0; gated on the `/types/nodes.json`
-  endpoint check; n8nkit already degrades to the offline catalog).
+### Verified
+- **P3 machine migration DONE** (plugin is the active runtime; loads only in build-workflow — see the
+  enabledPlugins gotcha in NOTES-followups).
+- **P5 endpoint A1 confirmed**: `GET /types/nodes.json` serves the full catalog (868 node entries, 118
+  community) behind editor/session auth; n8nctl `node` verbs shipped in n8nctl 1.1.0.
+
+### Pending (user-gated)
+- Run `scripts/e2e-fix-loop.sh` on prod (needs `n8nctl auth login --session`).
 
 ## [0.3.0] — 2026-07-02 — Full-cycle skills
 
