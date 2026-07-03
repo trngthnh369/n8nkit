@@ -1,5 +1,6 @@
 {
   "name": "n8nkit-marketplace",
+  "description": "Local marketplace hosting the n8nkit plugin — full-cycle n8n workflow engineering for Claude Code.",
   "owner": { "name": "Truong Thinh", "url": "https://github.com/trngthnh369" },
   "plugins": [
     {
