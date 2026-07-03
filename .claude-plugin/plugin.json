@@ -6,6 +6,5 @@
   "homepage": "https://github.com/trngthnh369/n8nkit",
   "repository": "https://github.com/trngthnh369/n8nkit",
   "license": "MIT",
-  "keywords": ["n8n", "workflow", "automation", "n8nctl"],
-  "hooks": "./hooks/hooks.json"
+  "keywords": ["n8n", "workflow", "automation", "n8nctl"]
 }
