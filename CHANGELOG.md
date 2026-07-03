@@ -17,11 +17,10 @@ this project uses semver-ish tags on a local (no-remote) repo.
 ### Verified
 - **P3 machine migration DONE** (plugin is the active runtime; loads only in build-workflow — see the
   enabledPlugins gotcha in NOTES-followups).
-- **P5 endpoint A1 confirmed**: `GET /types/nodes.json` serves the full catalog (868 node entries, 118
-  community) behind editor/session auth; n8nctl `node` verbs shipped in n8nctl 1.1.0.
-
-### Pending (user-gated)
-- Run `scripts/e2e-fix-loop.sh` on prod (needs `n8nctl auth login --session`).
+- **P5 DONE**: `GET /types/nodes.json` confirmed (868 node entries, 118 community, behind session auth);
+  n8nctl `node` verbs shipped in n8nctl 1.1.0 and **installed globally**; the live catalog is active.
+- **`e2e-fix-loop.sh` PASSED on prod** (n8n 1.122.5): full failure→fix→redeploy→verify loop, workflow
+  auto-deleted. `e2e-prod-sample.sh` also passing. All P1–P6 work complete.
 
 ## [0.3.0] — 2026-07-02 — Full-cycle skills
 

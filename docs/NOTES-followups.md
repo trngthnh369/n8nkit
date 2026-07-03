@@ -22,18 +22,22 @@ Instead leave the plugin **absent** from `~/.claude/settings.json` enabledPlugin
 **namespaced** (`n8nkit:n8n-build`); auto-trigger by description still fires; cross-skill prose using bare
 `/n8n-*` still resolves via the Skill tool by name.
 
-### P5 — n8nctl `node` live-catalog verbs (cross-repo: `D:\Projects\personal\n8nctl`, target 1.1.0)
-Gated on **A1**: verify the node-catalog endpoint on live n8n 1.122.5 with a session cookie —
-`GET $N8N_HOST/types/nodes.json` (editor static asset, full descriptions incl. community nodes) or
-`/rest/node-types`. Record which works + its shape **before** writing code. Then add
-`n8nctl node list|describe|search` (cache keyed by host **and n8n version**, 24h TTL, `--refresh`). n8nkit
-side: a one-line probe (`n8nctl node --help` exit 0 = available) with silent fallback to the offline catalog
-(`n8n-node-configuration`) + `n8nctl workflow schema --node`. n8nkit works fully without this — it is an
-enhancement, not a dependency. Do NOT adopt n8n-mcp (deliberate — the live instance is the source of truth).
+### P5 — n8nctl `node` live-catalog verbs → DONE (2026-07-03)
+`GET /types/nodes.json` verified (868 node entries, 118 community, **behind session-cookie auth** — the
+api-key client 401s). Shipped `n8nctl node list|describe|search` in n8nctl 1.1.0 (cross-repo, 420 tests
+pass), installed globally, and integrated the degradation contract into n8n-build/node-configuration/review.
+Gotcha for the record: the catalog lists one entry per major node version (46 names have 2–3) — the CLI
+collapses to the latest schema. n8n-mcp deliberately NOT adopted (live instance is the source of truth).
 
-### P6.2 — run the failure→fix E2E
-`scripts/e2e-fix-loop.sh` is authored + syntax-clean. Run it (needs `n8nctl auth login --session`) to prove
-the fix-loop primitives against prod. Leaves a temp workflow deleted on exit; a few benign execution records remain.
+### P6.2 — failure→fix E2E → PASSED on prod (2026-07-03)
+`scripts/e2e-fix-loop.sh` ran green against n8n 1.122.5: broken workflow → run fails → marker surfaced →
+patch → redeploy → re-run succeeds → verify gate CẦN passed → workflow auto-deleted. (Preflight fixed:
+`auth status` doesn't report session state, so it checks reachability and lets `workflow run` fail-fast.)
+
+### To activate the live catalog on another machine
+Global `n8nctl` must be ≥ 1.1.0 (`npm i -g D:\Projects\personal\n8nctl\packages\n8nctl` or publish) AND a
+session must exist (`n8nctl auth login --session --cookie-only`). Without either, skills degrade to the
+offline catalog — nothing breaks.
 
 ## Personal user-level scripts (NOT bundled by the plugin)
 
