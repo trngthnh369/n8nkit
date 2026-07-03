@@ -9,8 +9,12 @@
 # Usage: bash scripts/e2e-fix-loop.sh
 set -uo pipefail
 
-echo "== preflight: session auth =="
-n8nctl auth status 2>&1 | grep -qiE 'session|cookie' || { echo "No session auth. Run: n8nctl auth login --session --cookie-only"; exit 2; }
+echo "== preflight: reachability =="
+# `workflow run` (step 4/7) uses the internal /rest session — if the session
+# cookie is missing it fails fast (exit 2) with a login hint, and the cleanup
+# trap removes any workflow already created. We only check basic reachability
+# here; `auth status` does not report session state.
+n8nctl auth status >/dev/null 2>&1 || { echo "Not authenticated. Run: n8nctl auth login (and `--session --cookie-only` for run)"; exit 2; }
 
 MARKER='E2E_FIX_MARKER'
 NAME="n8nkit-e2e-fix-$(date +%s)"
@@ -25,7 +29,7 @@ const marker=process.argv[2];
 const mk=(throwIt)=>({
   name: process.argv[3],
   nodes: [
-    { id:"a1111111-1111-4111-8111-111111111111", name:"Schedule Trigger", type:"n8n-nodes-base.scheduleTrigger", typeVersion:1.2, position:[0,0], parameters:{} },
+    { id:"a1111111-1111-4111-8111-111111111111", name:"Schedule Trigger", type:"n8n-nodes-base.scheduleTrigger", typeVersion:1.2, position:[0,0], parameters:{ rule:{ interval:[{ field:"hours", hoursInterval:24 }] } } },
     { id:"a2222222-2222-4222-8222-222222222222", name:"Break", type:"n8n-nodes-base.code", typeVersion:2, position:[250,0], parameters:{ language:"javaScript", jsCode: throwIt ? ("throw new Error(\x27"+marker+"\x27);") : "return $input.all();" } },
     { id:"a3333333-3333-4333-8333-333333333333", name:"NoOp", type:"n8n-nodes-base.noOp", typeVersion:1, position:[500,0], parameters:{} }
   ],
