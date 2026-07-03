@@ -9,7 +9,8 @@ $ErrorActionPreference = 'Stop'
 $Claude    = Join-Path $HOME '.claude'
 $RepoRoot  = Split-Path -Parent $PSScriptRoot
 $Expected  = (Get-Content (Join-Path $RepoRoot '.claude-plugin\plugin.json') -Raw | ConvertFrom-Json).version
-$N8nSkills = @('n8n-intake','n8n-build','n8n-deploy','n8n-test','n8n-fix','n8n-rollback','n8n-pipeline',
+$N8nSkills = @('n8n-intake','n8n-build','n8n-review','n8n-deploy','n8n-test','n8n-fix','n8n-rollback','n8n-pipeline',
+               'n8n-monitor','n8n-promote','n8n-credentials','n8n-docs',
                'n8n-workflow-patterns','n8n-node-configuration','n8n-integrations','n8n-expression-syntax',
                'n8n-code-javascript','n8n-validation-expert','n8nctl')
 $pass = 0; $fail = 0
@@ -32,7 +33,8 @@ Check "plugin.json version = $Expected" ($pj.version -eq $Expected) "got $($pj.v
 # ---- skills frontmatter ----
 foreach ($s in $N8nSkills) {
   $f = Join-Path $root "skills\$s\SKILL.md"
-  $ok = (Test-Path $f) -and ((Get-Content $f -TotalCount 5 -Raw) -match 'name:\s*\S')
+  $ok = $false
+  if (Test-Path $f) { $ok = @((Get-Content $f -TotalCount 5) -match 'name:\s*\S').Count -gt 0 }
   Check "skill $s has name: frontmatter" $ok
 }
 
@@ -57,7 +59,7 @@ if ($hooksOk) {
 # ---- live-fire all 4 hooks from the cache ----
 Write-Host "`n  live-fire hooks from cache:" -ForegroundColor Cyan
 $scratch = Join-Path $env:TEMP "n8nkit-verify-$(Get-Random)"
-$null = New-Item -ItemType Directory -Force -Path (Join-Path $scratch '.n8nkit'), (Join-Path $scratch '.claude\artifacts')
+$null = New-Item -ItemType Directory -Force -Path (Join-Path $scratch '.n8nkit'), (Join-Path $scratch '.claude\artifacts'), (Join-Path $scratch 'x')
 Set-Content (Join-Path $scratch '.n8nkit\config.json') (@{ workflowRoot = $scratch } | ConvertTo-Json) -Encoding UTF8
 function FireHook($cjs, $payload) {
   $json = $payload | ConvertTo-Json -Compress -Depth 8
