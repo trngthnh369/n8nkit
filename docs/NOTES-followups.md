@@ -5,16 +5,22 @@ State after the 0.3.0 upgrade (2026-07-02). The kit is a Claude Code **plugin** 
 
 ## Remaining work (user-gated or separate release train)
 
-### P3 — machine migration (operational; needs fresh sessions)
-The plugin is authored + validated but not yet the active runtime on this machine. To switch:
-1. In a Claude session: `/plugin marketplace add D:\Projects\personal\n8nkit` → `/plugin install n8nkit@n8nkit-marketplace`.
-2. Enable per-project: `enabledPlugins` `true` in `build-workflow/.claude/settings.json`, `false` user-level.
-3. **Scratch-smoke first** (fresh session in a throwaway project) — confirm skills route, the 4 hooks fire
-   from the plugin cache, and record whether skills surface as `/n8n-*` or `/n8nkit:n8n-*` (risk R4).
-4. `pwsh scripts/migrate-to-plugin.ps1 -WhatIf` → then for real (removes the 14 project skill copies + 2 user
-   agents, deregisters 2 PostToolUse hooks, keeps the secret guard).
-5. Verify: `pwsh scripts/verify-plugin.ps1` + `node scripts/test-hooks.cjs` + `bash scripts/e2e-prod-sample.sh`.
-   Rollback: `pwsh scripts/rollback-plugin-migration.ps1`.
+### P3 — machine migration → DONE (2026-07-03), verified
+Plugin installed (0.3.0), migrated, and **empirically verified**: a fresh `claude` process in
+`build-workflow` loads exactly the 19 skills (as `n8nkit:n8n-*`); any other project loads NONE.
+verify-plugin.ps1 = 33/33. Migration backup: `~/.claude/backups/n8nkit-plugin-migration-2026-07-03`.
+
+**⚠️ enabledPlugins gotcha (cost 1 debug cycle — non-obvious, upstream bug #27247/#25086):**
+A user-scope `enabledPlugins: { X: false }` is **STICKY** — a project/local-scope `true` does NOT override
+it (despite the documented Local > Project > User precedence). Empirically proven:
+- user `false` + project `true` → build-workflow loads **NONE**.
+- user key **absent** + project/local `true` → build-workflow loads all 19, other projects load NONE. ✓
+**Correct per-project config**: do NOT run `claude plugin disable -s user` (it writes the sticky `false`).
+Instead leave the plugin **absent** from `~/.claude/settings.json` enabledPlugins (default = off), and set
+`enabledPlugins: { "n8nkit@n8nkit-marketplace": true }` in the project's `.claude/settings.local.json`
+(local scope — personal, git-safe; NOT settings.json which git can pick up). R4 answered: skills surface
+**namespaced** (`n8nkit:n8n-build`); auto-trigger by description still fires; cross-skill prose using bare
+`/n8n-*` still resolves via the Skill tool by name.
 
 ### P5 — n8nctl `node` live-catalog verbs (cross-repo: `D:\Projects\personal\n8nctl`, target 1.1.0)
 Gated on **A1**: verify the node-catalog endpoint on live n8n 1.122.5 with a session cookie —
