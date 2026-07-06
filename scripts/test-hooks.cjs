@@ -150,6 +150,18 @@ check('mutating verb --dry-run → allowed (exit 0)', r.code === 0 && r.out.trim
 r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: 'n8nctl credential create ./cred.json' } });
 check('credential create + no artifact → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
 
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: 'n8nctl workflow deploy ./wf.json --run' } });
+check('workflow deploy (1.4 sequencer) + no artifact → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
+
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: 'n8nctl credential delete 42 --yes' } });
+check('credential delete + no artifact → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
+
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: 'n8nctl source-control pull --force' } });
+check('source-control pull + no artifact → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
+
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: 'n8nctl catalog sync' } });
+check('catalog sync (read+local-write) → silent (exit 0)', r.code === 0 && r.out.trim() === '', `code=${r.code} out=${r.out.trim()}`);
+
 r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: "echo 'AKIAIOSFODNN7EXAMPLE1' > /x/build-workflow/wf.json" } });
 check('shell-write of AWS key into workflow json → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
 

@@ -21,7 +21,9 @@ const path = require('path');
 const { safeHook, readInput, resolveWorkflowRoot } = require('./_lib.cjs');
 
 const ARTIFACT_MAX_AGE_MS = 30 * 60 * 1000; // 30 minutes
-const MUTATING_RE = /n8nctl\s+workflow\s+(?:update|promote|activate|delete|import|rollback)\b|n8nctl\s+credential\s+create\b/;
+// Keep in sync with n8nctl's mutating surface (1.4.0): workflow deploy (create-or-update
+// + activate sequencer), credential delete/transfer, source-control pull (bulk overwrite).
+const MUTATING_RE = /n8nctl\s+workflow\s+(?:update|promote|activate|delete|import|rollback|deploy|transfer)\b|n8nctl\s+credential\s+(?:create|delete|transfer)\b|n8nctl\s+source-control\s+pull\b/;
 const WRITE_OP_RE = /(?:>>?|\bSet-Content\b|\bOut-File\b|\bAdd-Content\b|\btee\b|fs\.(?:appendFile|writeFile)(?:Sync)?)/;
 const ARTIFACT_DIR_RE = /^n8n-(?:deploy|fix|promote|credentials|rollback)-/;
 
