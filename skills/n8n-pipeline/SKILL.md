@@ -124,6 +124,11 @@ cp <pluginRoot>/.n8nkit/config.schema.json "<workflowRoot>/$PROJECT/.n8nkit/conf
 # 3. .gitignore — never commit session/env files or raw backups
 printf '%s\n' 'scripts/.n8n-session.env' 'scripts/.n8n-cookie.json' '*.env' '_backups/*.json' > "<workflowRoot>/$PROJECT/.gitignore"
 
+# 3b. Enable the n8nkit plugin for THIS project (each project = its own git repo = its own
+#     Claude project root; the parent build-workflow enable does NOT cascade down)
+mkdir -p "<workflowRoot>/$PROJECT/.claude"
+printf '%s\n' '{ "enabledPlugins": { "n8nkit@n8nkit-marketplace": true } }' > "<workflowRoot>/$PROJECT/.claude/settings.local.json"
+
 # 4. first workflow skeleton (n8nctl 1.0)
 n8nctl workflow scaffold --from webhook --name "$PROJECT" -o "<workflowRoot>/$PROJECT/workflow/$PROJECT.json"
 
