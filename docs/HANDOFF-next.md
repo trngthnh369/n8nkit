@@ -1,5 +1,15 @@
 # HANDOFF — n8nkit next: /n8n-cook → catalog-sync integration → publish
 
+> ✅ **HOÀN THÀNH 2026-07-16 (cả 3 workstream)** — 0.5.0. W1: `/n8n-cook` shipped (plan qua
+> plan-review bus 3-reviewer, 19 findings → 12 fixes; E2E prod PASS: create INACTIVE qua sequencer,
+> run+gate success, cleanup sạch cả execution records). Guard mở rộng: cook artifact + execution/tag
+> verbs + **alias wf/exec/cred/sc + rm** (bypass pre-0.5.0) + 1.5 governance verbs (user/project);
+> test-hooks 62→73. W2: skills sync n8nctl 1.3/1.4 (catalog sync documented + đã sync thật 816 nodes
+> trên pcvn-prod; ROTATION dùng credential delete; e2e-fix-loop dọn execution records). W3: n8nctl
+> 1.5.0 đã lên npm (session song song); n8nkit → **github.com/trngthnh369/n8nkit** (PUBLIC, LICENSE
+> MIT, secret-scan history clean). CHƯA test `/plugin marketplace add trngthnh369/n8nkit` từ máy khác
+> (local đang dùng marketplace cùng tên — add từ GitHub trên máy này sẽ collide).
+
 > Prompt handoff cho session mới (2026-07-03). Đọc file này TRƯỚC khi làm gì. Thứ tự: W1 → W2 → W3.
 
 ## Bối cảnh 30 giây
