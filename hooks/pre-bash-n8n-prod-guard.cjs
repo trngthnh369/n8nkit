@@ -21,11 +21,13 @@ const path = require('path');
 const { safeHook, readInput, resolveWorkflowRoot } = require('./_lib.cjs');
 
 const ARTIFACT_MAX_AGE_MS = 30 * 60 * 1000; // 30 minutes
-// Keep in sync with n8nctl's mutating surface (1.4.0): workflow deploy (create-or-update
+// Keep in sync with n8nctl's mutating surface (1.5.0): workflow deploy (create-or-update
 // + activate sequencer), credential delete/transfer, execution delete (prod run records),
-// tag update/delete, source-control pull (bulk overwrite). Covers the CLI's command aliases
-// (wf/exec/cred/sc, delete|rm) — the guard matches command text, so an alias is a bypass.
-const MUTATING_RE = /n8nctl\s+(?:workflow|wf)\s+(?:update|promote|activate|delete|rm|import|rollback|deploy|transfer)\b|n8nctl\s+(?:credential|cred)\s+(?:create|delete|rm|transfer)\b|n8nctl\s+(?:execution|exec)\s+(?:delete|rm)\b|n8nctl\s+tag\s+(?:update|delete|rm)\b|n8nctl\s+(?:source-control|sc)\s+pull\b/;
+// tag update/delete, source-control pull (bulk overwrite), user invite/delete/role +
+// project create/update/delete/add-user/remove-user (1.5 governance, licensed). Covers the
+// CLI's command aliases (wf/exec/cred/sc, delete|rm) — the guard matches command text, so
+// an uncovered alias is a bypass.
+const MUTATING_RE = /n8nctl\s+(?:workflow|wf)\s+(?:update|promote|activate|delete|rm|import|rollback|deploy|transfer)\b|n8nctl\s+(?:credential|cred)\s+(?:create|delete|rm|transfer)\b|n8nctl\s+(?:execution|exec)\s+(?:delete|rm)\b|n8nctl\s+tag\s+(?:update|delete|rm)\b|n8nctl\s+(?:source-control|sc)\s+pull\b|n8nctl\s+user\s+(?:invite|delete|rm|role)\b|n8nctl\s+project\s+(?:create|update|delete|rm|add-user|remove-user)\b/;
 const WRITE_OP_RE = /(?:>>?|\bSet-Content\b|\bOut-File\b|\bAdd-Content\b|\btee\b|fs\.(?:appendFile|writeFile)(?:Sync)?)/;
 const ARTIFACT_DIR_RE = /^n8n-(?:deploy|fix|promote|credentials|rollback|cook)-/;
 

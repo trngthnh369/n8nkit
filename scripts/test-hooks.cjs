@@ -194,6 +194,16 @@ check('alias exec rm + no artifact → BLOCK (exit 2)', r.code === 2 && /BLOCKED
 r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: 'n8nctl cred rm 7 --yes' } });
 check('alias cred rm + no artifact → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
 
+// n8nctl 1.5 governance verbs (licensed): user/project mutations are prod-mutating too.
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: 'n8nctl user invite a@b.com --role global:member' } });
+check('user invite (1.5) + no artifact → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
+
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: 'n8nctl project delete 12 --yes' } });
+check('project delete (1.5) + no artifact → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
+
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: 'n8nctl user list' } });
+check('user list (read verb) → silent (exit 0)', r.code === 0 && r.out.trim() === '', `code=${r.code} out=${r.out.trim()}`);
+
 r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: "echo 'AKIAIOSFODNN7EXAMPLE1' > /x/build-workflow/wf.json" } });
 check('shell-write of AWS key into workflow json → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
 

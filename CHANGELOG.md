@@ -15,15 +15,18 @@ this project uses semver-ish tags on a local (no-remote) repo.
   stop after review; inactive-only override is labeled UNVERIFIED and locks Gate 2.
   Plan reviewed by the 3-reviewer debate bus (plan-reviewer + architect + codex; 19 findings → 12
   fixes applied, approach validated; `docs/specs/plan-n8n-cook.md`).
-- test-hooks: 8 new prod-guard assertions (cook artifact allow/deny, execution/tag verbs, alias
-  bypass regressions) — 62 → 70.
+- test-hooks: new prod-guard assertions (cook artifact allow/deny, execution/tag/governance verbs,
+  alias-bypass regressions) — total in the guard section below.
 
 ### Fixed / hardened (guard)
 - `ARTIFACT_DIR_RE` accepts `n8n-cook-*` approval artifacts (else the guard would block cook itself).
 - `MUTATING_RE` now covers `execution delete` (run-record deletion — was a 1.4 coverage gap that the
   plan-review bus caught) and `tag update|delete`, **plus the CLI's real aliases** `wf`/`exec`/`cred`/
   `sc` and `rm` — the guard matches command text, so an uncovered alias was a full bypass (e.g.
-  `n8nctl wf update` sailed through pre-0.5.0).
+  `n8nctl wf update` sailed through pre-0.5.0). Also covers the n8nctl **1.5 governance verbs**
+  (`user invite|delete|role`, `project create|update|delete|add-user|remove-user` — licensed, but
+  the guard is instance-agnostic). test-hooks total: 62 → 73.
+- `LICENSE` file added (MIT was declared in plugin.json but the file was missing — publish blocker).
 
 ### Changed — skills synced to n8nctl 1.3/1.4 (W2)
 - `n8nctl` skill: reference updated to v1.4 — `workflow deploy` sequencer (with the activate-before-gate
