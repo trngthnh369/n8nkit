@@ -22,10 +22,12 @@ const { safeHook, readInput, resolveWorkflowRoot } = require('./_lib.cjs');
 
 const ARTIFACT_MAX_AGE_MS = 30 * 60 * 1000; // 30 minutes
 // Keep in sync with n8nctl's mutating surface (1.4.0): workflow deploy (create-or-update
-// + activate sequencer), credential delete/transfer, source-control pull (bulk overwrite).
-const MUTATING_RE = /n8nctl\s+workflow\s+(?:update|promote|activate|delete|import|rollback|deploy|transfer)\b|n8nctl\s+credential\s+(?:create|delete|transfer)\b|n8nctl\s+source-control\s+pull\b/;
+// + activate sequencer), credential delete/transfer, execution delete (prod run records),
+// tag update/delete, source-control pull (bulk overwrite). Covers the CLI's command aliases
+// (wf/exec/cred/sc, delete|rm) — the guard matches command text, so an alias is a bypass.
+const MUTATING_RE = /n8nctl\s+(?:workflow|wf)\s+(?:update|promote|activate|delete|rm|import|rollback|deploy|transfer)\b|n8nctl\s+(?:credential|cred)\s+(?:create|delete|rm|transfer)\b|n8nctl\s+(?:execution|exec)\s+(?:delete|rm)\b|n8nctl\s+tag\s+(?:update|delete|rm)\b|n8nctl\s+(?:source-control|sc)\s+pull\b/;
 const WRITE_OP_RE = /(?:>>?|\bSet-Content\b|\bOut-File\b|\bAdd-Content\b|\btee\b|fs\.(?:appendFile|writeFile)(?:Sync)?)/;
-const ARTIFACT_DIR_RE = /^n8n-(?:deploy|fix|promote|credentials|rollback)-/;
+const ARTIFACT_DIR_RE = /^n8n-(?:deploy|fix|promote|credentials|rollback|cook)-/;
 
 // Walk up from startDir to find the nearest .claude/artifacts directory (project root, even from a subdir).
 function findArtifactsDir(startDir) {
@@ -85,7 +87,7 @@ function main() {
       if (!hasFreshApprovalArtifact(data.cwd)) {
         process.stderr.write(
           'BLOCKED: production-write n8nctl verb without a fresh approval artifact.\n' +
-          'Run the matching skill gate first (/n8n-deploy, /n8n-fix, /n8n-promote, /n8n-credentials, /n8n-rollback),\n' +
+          'Run the matching skill gate first (/n8n-cook, /n8n-deploy, /n8n-fix, /n8n-promote, /n8n-credentials, /n8n-rollback),\n' +
           'which creates .claude/artifacts/n8n-<skill>-<id>/ after you confirm. (Emergency override: N8NKIT_PROD_GUARD=off.)\n'
         );
         process.exit(2);

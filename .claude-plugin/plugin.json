@@ -1,6 +1,6 @@
 {
   "name": "n8nkit",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "n8n workflow engineering toolkit for Claude Code — spec→build→review→deploy→test→fix→rollback lifecycle skills, real-time guards, and n8n specialist agents. Mirrors ClaudeKit design (problem-first, artifact-gated, specialist routing) for the n8n domain.",
   "author": {
     "name": "Truong Thinh",

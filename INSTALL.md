@@ -1,6 +1,6 @@
 # Installing n8nkit
 
-n8nkit is distributed as a **Claude Code plugin**. Enabling it per-project means its ~19 skills load
+n8nkit is distributed as a **Claude Code plugin**. Enabling it per-project means its ~20 skills load
 only where you need them (no always-on token cost), and the repo stays the single source of truth.
 
 ## Install (plugin)

@@ -14,3 +14,7 @@ scratch/
 
 # Claude Code task-tracker / session state
 .claude/
+
+# Generated review artifacts (plan-review bus)
+docs/specs/*.html
+docs/specs/*.decision.json

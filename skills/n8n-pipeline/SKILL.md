@@ -17,6 +17,7 @@ You are the entry point for n8n workflow automation. When triggered, you route t
 
 | Intent | Slash command | Notes |
 |---|---|---|
+| Full cycle tự động (intake→…→docs) | `/n8n-cook <request> [--auto]` | 2 confirm gates; `--auto` = 1 confirm tổng; fail test → fix-loop |
 | Parse a request into a spec | `/n8n-intake <request>` | Vietnamese clarifying questions |
 | Create new workflow JSON | `/n8n-build <desc> [--tier=...] [--project=...]` | Template-first, local validate |
 | Review before deploy | `/n8n-review <file-or-id>` | Read-only, six-lens, scored artifact |
@@ -134,7 +135,7 @@ See `_templates/project-bootstrap/README.md` for placeholder table.
 ## Safety hooks (auto-enforced — plugin `hooks/hooks.json`, or user-level `settings.json` on legacy installs)
 
 - **`pre-n8n-secret-guard`** (PreToolUse Write|Edit|MultiEdit|NotebookEdit) — blocks hardcoded JWT / API key / token in workflow JSON and Claude config. Registered user-level under the filename `pre-write-n8n-secret.cjs`.
-- **`pre-bash-n8n-prod-guard`** (PreToolUse Bash|PowerShell) — blocks mutating `n8nctl workflow update|promote|activate|delete|import|rollback` and `credential create` unless a fresh approval artifact exists (produced by the deploy/fix/promote/credentials gates). Fail-closed production write control.
+- **`pre-bash-n8n-prod-guard`** (PreToolUse Bash|PowerShell) — blocks mutating n8nctl verbs (`workflow update|promote|activate|delete|import|rollback|deploy|transfer`, `credential create|delete|transfer`, `execution delete`, `tag update|delete`, `source-control pull` — incl. wf/exec/cred/sc + rm aliases) unless a fresh approval artifact exists (produced by the cook/deploy/fix/promote/credentials/rollback gates). Fail-closed production write control.
 - **`post-n8n-validate`** (PostToolUse Write|Edit) — warn-only `n8nctl workflow validate` after writing a workflow JSON.
 - **`post-bash-n8nctl-diagnose`** (PostToolUse Bash|PowerShell) — if an n8nctl command errors → suggests `/n8n-fix`.
 
@@ -143,6 +144,7 @@ Hooks in files: plugin `hooks/*.cjs` (or `~/.claude/hooks/*.cjs` legacy). Errors
 ## Default routing logic
 
 ```
+if intent = "full cycle/từ A đến Z/cook/tự động toàn bộ" → /n8n-cook   # thắng các intent đơn lẻ khi user muốn trọn gói
 if intent = "intake/yêu cầu/spec"                → /n8n-intake
 if intent = "build/tạo mới"                      → /n8n-build
 if intent = "review/đánh giá" + file or id       → /n8n-review
@@ -159,6 +161,7 @@ if intent unclear → ask user + show the pipeline map above
 
 ## Cross-skill handoffs
 
+- `/n8n-cook` = orchestrator: gọi intake → build → review → deploy+test (n8nctl `workflow deploy` sequencer thay chuỗi Step 6-9 của n8n-deploy) → docs; test fail → `/n8n-fix`; credential issue → `/n8n-credentials`.
 - `/n8n-build` success → suggest `/n8n-review` before `/n8n-deploy`.
 - `/n8n-deploy` may run `/n8n-review` as an optional preflight (Step 2.5).
 - `/n8n-fix` and `/n8n-deploy` STOP on credential issues → hand off to `/n8n-credentials` (they never touch credentials).

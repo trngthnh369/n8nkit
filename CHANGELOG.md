@@ -3,6 +3,48 @@
 All notable changes to n8nkit. Format follows [Keep a Changelog](https://keepachangelog.com/);
 this project uses semver-ish tags on a local (no-remote) repo.
 
+## [0.5.0] — 2026-07-16 — /n8n-cook full-cycle orchestrator
+
+### Added
+- **`n8n-cook`** — one-command orchestrator for the whole cycle: intake → build → review (blocks on
+  CRITICAL + HIGH security/data-loss) → Gate 1 (confirm + side-effect inventory + artifact) →
+  deploy+test via n8nctl 1.4 `workflow deploy --create-only --run --rollback-on-fail` sequencer →
+  Gate 2 (separate activate confirm, marker re-emit) → fix-loop handoff (exit 6 → `/n8n-fix`) →
+  docs + git commit. Default = 2 confirm gates; `--auto` = ONE blanket confirm; never zero-confirm;
+  `--verify-triggers` never auto (fires a real prod webhook). Session-auth fail-closed: no session →
+  stop after review; inactive-only override is labeled UNVERIFIED and locks Gate 2.
+  Plan reviewed by the 3-reviewer debate bus (plan-reviewer + architect + codex; 19 findings → 12
+  fixes applied, approach validated; `docs/specs/plan-n8n-cook.md`).
+- test-hooks: 8 new prod-guard assertions (cook artifact allow/deny, execution/tag verbs, alias
+  bypass regressions) — 62 → 70.
+
+### Fixed / hardened (guard)
+- `ARTIFACT_DIR_RE` accepts `n8n-cook-*` approval artifacts (else the guard would block cook itself).
+- `MUTATING_RE` now covers `execution delete` (run-record deletion — was a 1.4 coverage gap that the
+  plan-review bus caught) and `tag update|delete`, **plus the CLI's real aliases** `wf`/`exec`/`cred`/
+  `sc` and `rm` — the guard matches command text, so an uncovered alias was a full bypass (e.g.
+  `n8nctl wf update` sailed through pre-0.5.0).
+
+### Changed — skills synced to n8nctl 1.3/1.4 (W2)
+- `n8nctl` skill: reference updated to v1.4 — `workflow deploy` sequencer (with the activate-before-gate
+  warning) + `workflow transfer`, `catalog sync|show|reset`, `execution delete`, `credential
+  delete/transfer`, `tag update/delete`.
+- `n8n-node-configuration` + `n8n-validation-expert`: document the Layer-6 validator catalog sync
+  (`catalog sync` → real ~400+-node set vs bundled 36; re-run after n8n upgrades / community-node
+  installs; false E062/E072 vs the snapshot → sync the catalog).
+- `scripts/e2e-fix-loop.sh`: cleanup now deletes the test run's execution records too (stale "no
+  execution-delete verb" caveat removed) — the instance is left as found.
+- `n8n-credentials/ROTATION.md`: retire step uses `n8nctl credential delete` (UI deletion is now the
+  fallback, not the requirement).
+- `n8n-deploy`: documents the 1.4 sequencer as a Step 6-7 alternative (gates unchanged; never
+  `--activate` through it). `n8n-monitor`: routes the "active but webhook 404" trap (#21614) to a
+  sequencer redeploy with `--verify-triggers`.
+
+## [0.4.1] — 2026-07-04 — prod-guard 1.4 surface hotfix
+- `MUTATING_RE` extended for the n8nctl 1.4 mutating surface (`workflow deploy|transfer`,
+  `credential delete|transfer`, `source-control pull`) + test cases (58 → 62). (Entry added
+  retroactively in 0.5.0 — the fix shipped as commit `e4dd580`.)
+
 ## [0.4.0] — 2026-07-03 — Live node catalog integration
 
 ### Added

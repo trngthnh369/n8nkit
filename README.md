@@ -12,7 +12,8 @@ domain**. It sits on top of [`@trngthnh369/n8nctl`](https://www.npmjs.com/packag
 
 - **Lifecycle skills** (`skills/`): `n8n-intake` → `n8n-build` → `n8n-review` → `n8n-deploy` → `n8n-test`
   → `n8n-fix` → `n8n-rollback`, plus ops skills `n8n-monitor`, `n8n-promote`, `n8n-credentials`,
-  `n8n-docs` — all routed by `n8n-pipeline`.
+  `n8n-docs` — all routed by `n8n-pipeline`. `n8n-cook` orchestrates the whole cycle in one command
+  (intake → build → review → deploy+test via the n8nctl sequencer → optional activate → docs).
 - **Knowledge skills**: `n8n-workflow-patterns`, `n8n-node-configuration`, `n8n-integrations`,
   `n8n-expression-syntax`, `n8n-code-javascript`, `n8n-validation-expert`, `n8nctl`.
 - **Specialist agents** (`agents/`): `n8n-builder` (greenfield JSON), `n8n-debugger` (runtime forensics + self-heal).
@@ -26,7 +27,7 @@ domain**. It sits on top of [`@trngthnh369/n8nctl`](https://www.npmjs.com/packag
 
 ## Distribution — Claude Code plugin
 
-Shipped as a plugin so the ~19 skills load **only in projects where you enable it** (solves the
+Shipped as a plugin so the ~20 skills load **only in projects where you enable it** (solves the
 per-session token cost, and makes the repo the single source of truth — no copy-install drift). See
 [`INSTALL.md`](./INSTALL.md).
 
@@ -44,6 +45,7 @@ Migrating from the pre-0.2 copy-install: `pwsh scripts/migrate-to-plugin.ps1` (s
 
 | Phase | Command |
 |---|---|
+| **Full cycle (one command)** | `/n8n-cook <request> [--auto]` |
 | Requirements → spec | `/n8n-intake <request>` |
 | Build workflow JSON | `/n8n-build <description>` |
 | Review before deploy | `/n8n-review <file-or-id>` |

@@ -162,6 +162,38 @@ check('source-control pull + no artifact → BLOCK (exit 2)', r.code === 2 && /B
 r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: 'n8nctl catalog sync' } });
 check('catalog sync (read+local-write) → silent (exit 0)', r.code === 0 && r.out.trim() === '', `code=${r.code} out=${r.out.trim()}`);
 
+// Cook artifact dir (0.5.0): project whose ONLY approval artifact is an n8n-cook-* dir.
+const COOKP = path.join(os.tmpdir(), 'n8nkit-test-cook');
+const COOKA = path.join(COOKP, '.claude', 'artifacts', 'n8n-cook-ping-e2e');
+fs.mkdirSync(COOKA, { recursive: true });
+fs.writeFileSync(path.join(COOKA, 'context-snippets.json'), JSON.stringify({ workflow_name: 'ping-e2e' }));
+
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: COOKP, tool_input: { command: 'n8nctl workflow deploy ./wf.json --create-only --run' } });
+check('cook artifact fresh + workflow deploy → allowed (exit 0)', r.code === 0 && r.out.trim() === '', `code=${r.code} out=${r.out.trim()}`);
+
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: COOKP, tool_input: { command: 'n8nctl execution delete 987 --yes' } });
+check('execution delete + fresh cook artifact → allowed (exit 0)', r.code === 0 && r.out.trim() === '', `code=${r.code} out=${r.out.trim()}`);
+
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: 'n8nctl execution delete 987 --yes' } });
+check('execution delete + no artifact → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
+
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: 'n8nctl tag update 3 renamed' } });
+check('tag update + no artifact → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
+
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: 'n8nctl tag list' } });
+check('tag list (read verb) → silent (exit 0)', r.code === 0 && r.out.trim() === '', `code=${r.code} out=${r.out.trim()}`);
+
+// Alias coverage: wf/exec/cred/sc + rm are real CLI aliases — the guard matches command TEXT,
+// so an uncovered alias is a full bypass of the fail-closed control.
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: 'n8nctl wf update 42 wf.json' } });
+check('alias wf update + no artifact → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
+
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: 'n8nctl exec rm 99 --yes' } });
+check('alias exec rm + no artifact → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
+
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: 'n8nctl cred rm 7 --yes' } });
+check('alias cred rm + no artifact → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
+
 r = run('pre-bash-n8n-prod-guard.cjs', { cwd: EMPTY, tool_input: { command: "echo 'AKIAIOSFODNN7EXAMPLE1' > /x/build-workflow/wf.json" } });
 check('shell-write of AWS key into workflow json → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
 
