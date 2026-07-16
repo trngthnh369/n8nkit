@@ -29,8 +29,9 @@ Write-Host "Fill the <FILL-ME> values in: $tmp  (do not share it; it will be del
    - `n8nctl workflow diff <id> <file>` — confirm the ONLY change is the credential reference.
    - Confirm THIS workflow with the user (deploy convention), then `n8nctl workflow update <id> <file>`.
    - Verify: `/n8n-test <id>` (or `n8nctl workflow verify`).
-4. **Retire the old credential** — delete in the n8n UI (no CLI delete), then re-run the usage scan to
-   confirm 0 references remain.
+4. **Retire the old credential** — `n8nctl credential delete <old-id> --yes` (n8nctl ≥ 1.4; guard-gated
+   — needs the fresh `/n8n-credentials` approval artifact; UI deletion remains the fallback), then
+   re-run the usage scan to confirm 0 references remain.
 
 ## Verification matrix
 
@@ -40,7 +41,7 @@ Write-Host "Fill the <FILL-ME> values in: $tmp  (do not share it; it will be del
 | Each workflow repointed | `n8nctl workflow get <id> --redact --jq '[.nodes[].credentials]'` | new name, not old |
 | Each workflow still runs | `/n8n-test <id>` | gate PASS |
 | Old credential unused | usage scan (SKILL Step 2) | 0 references |
-| Old credential deleted | `n8nctl credential list` | old name absent (after UI delete) |
+| Old credential deleted | `n8nctl credential list` | old name absent (after `credential delete`) |
 
 ## Rules
 

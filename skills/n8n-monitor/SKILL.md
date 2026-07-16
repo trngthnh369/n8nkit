@@ -81,6 +81,10 @@ Write `.claude/artifacts/n8n-monitor-<date>/health.md` + `health.json`:
 - deterministic failure → `/n8n-fix <id>`
 - credential failure → `/n8n-credentials audit` (or rotate)
 - suspected prod↔git drift → `/n8n-promote --check`
+- webhook workflow "active but never fires" (active=true in DB, route 404 — the #21614 trap): route to
+  a redeploy through `/n8n-deploy` using the n8nctl ≥ 1.4 sequencer with `--verify-triggers`, which
+  probes the live webhook URL post-activate and exits 6 if the trigger is not actually registered
+  (⚠ the probe fires the webhook once — needs the deploy skill's confirm, not monitor's)
 
 ## Rules
 - Never `execution retry`, never activate/deactivate, never run a workflow — that is `/n8n-test`.

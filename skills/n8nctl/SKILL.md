@@ -1,6 +1,6 @@
 ---
 name: n8nctl
-description: Operate an n8n instance via the `n8nctl` CLI (package `@trngthnh369/n8nctl` v1.0, installed globally). Use when user asks to list, create, update, trigger, debug, backup, restore, watch, validate, verify, promote, scaffold, audit, inspect node schema, or manage n8n workflows / executions / credentials / tags / variables. Requires N8N_HOST + N8N_API_KEY env vars OR a configured n8nctl profile. Curl fallback documented for edge cases the CLI does not cover.
+description: Operate an n8n instance via the `n8nctl` CLI (package `@trngthnh369/n8nctl` v1.4, installed globally). Use when user asks to list, create, update, trigger, debug, backup, restore, watch, validate, verify, promote, scaffold, audit, inspect node schema, or manage n8n workflows / executions / credentials / tags / variables. Requires N8N_HOST + N8N_API_KEY env vars OR a configured n8nctl profile. Curl fallback documented for edge cases the CLI does not cover.
 allowed-tools: "Bash Read Write Edit"
 ---
 
@@ -9,7 +9,7 @@ allowed-tools: "Bash Read Write Edit"
 > **🎯 Preferred tool: `n8nctl` CLI** (package `@trngthnh369/n8nctl`, installed globally).
 > Fall back to curl only when: (a) the CLI doesn't cover the operation, or (b) you need raw HTTP for debugging.
 
-The CLI (v1.0, contracts frozen — see `docs/CONTRACTS.md` in the n8nctl repo) wraps the n8n REST API with retry, auth layering, --dry-run, --json/--jq/--template output, and typed exit codes: **0** OK · **1** API · **2** auth · **3** validation · **4** network · **5** internal · **6** assertion-failed (a `workflow verify` gate did NOT pass — a real failed assertion, distinct from an infra error 1–5).
+The CLI (v1.4; 1.0 contracts frozen — see `docs/CONTRACTS.md` in the n8nctl repo) wraps the n8n REST API with retry, auth layering, --dry-run, --json/--jq/--template output, and typed exit codes: **0** OK · **1** API · **2** auth · **3** validation · **4** network · **5** internal · **6** assertion-failed (a `workflow verify` gate did NOT pass — a real failed assertion, distinct from an infra error 1–5).
 
 ---
 
@@ -41,6 +41,10 @@ n8nctl workflow export-all -o <dir> [--active --tag <t>]
 n8nctl workflow import <dir> [--force --activate]
 n8nctl workflow promote <id> --to <profile> [--from <profile>] [--map <file>] [--allow-unmapped] [--out-dir <dir>] [--activate]  # v1.0: cross-instance promotion w/ live-validated credential remap
 n8nctl workflow scaffold --from <webhook|cron|manual> [--name <n>] [--webhook-path <p>]   # v1.0: generate a starter workflow JSON
+n8nctl workflow deploy <file> [--id <id>|--create-only|--update-only] [--activate] [--run --trigger <node>] \
+  [--expect <file>|--expect-fields a,b,c] [--verify-triggers] [--rollback-on-fail [--rollback-delete-created]] \
+  [--validate-policy dev|ci|strict] [--timeout <ms>] [--out-dir <dir>]   # v1.4: one-shot sequencer normalize→validate→create-or-update(by name)→activate→run+verify gate. Exit 3 validation/ambiguity, 6 gate fail. ⚠ activate happens BEFORE the run gate — in gated flows deploy inactive, activate separately
+n8nctl workflow transfer <id> --project <projectId>        # v1.4: move workflow between n8n projects
 n8nctl workflow schema --node <type>            # v1.0: node param schema (accepts short names, e.g. "http"); --list = all catalog node types
 ```
 
@@ -50,6 +54,7 @@ n8nctl execution list [--workflow <id>] [--status <s>] [--limit <n>]
 n8nctl execution get <id> [--logs]
 n8nctl execution logs <id> [--node <name>] [--errors-only] [--io-data] [--unsafe-raw-io]   # v1.0: per-node run logs
 n8nctl execution retry <id>
+n8nctl execution delete <id> [--yes]            # v1.4: delete an execution record (cleanup between agent test runs). PROD-mutating — guard-gated
 n8nctl execution wait <id> [--timeout <ms>]     # poll until terminal
 n8nctl execution last-error --workflow <id> [--summary]
 ```
@@ -72,14 +77,29 @@ instance's n8n version, community nodes included. **Requires session auth** (`n8
 — the asset is behind editor auth, so the API key 401s. Cached 24h (`--refresh` to bust). `describe` accepts
 full (`n8n-nodes-base.httpRequest`), short (`httpRequest`), or fuzzy (`http`) names.
 
+### Validator catalog sync (v1.3)
+```bash
+n8nctl catalog sync        # generate the offline validator catalog from THIS instance's live node types
+n8nctl catalog show        # metadata + node count of the synced catalog (active profile)
+n8nctl catalog reset       # drop the synced catalog → validation reverts to the 36-node bundled snapshot
+```
+`catalog sync` makes `workflow validate` param-check against the REAL node set (~400+ nodes incl.
+community) instead of the bundled 36-node snapshot. **Requires session auth**; stored per profile.
+**Run it after every n8n upgrade or community-node install** — a stale synced catalog validates
+against the wrong typeVersions.
+
 ### Credential / Tag / Auth / Config / Profile / Doctor / Completion
 ```bash
 n8nctl credential list [--type <t>]                     # derived from workflow nodes
 n8nctl credential schema <type>
 n8nctl credential create <file>                          # POST /credentials from JSON ({name,type,data})
 n8nctl credential create <file> --no-validate            # skip schema pre-flight
+n8nctl credential delete <id> [--yes]                    # v1.4: PROD-mutating — guard-gated; rotation no longer needs UI deletion
+n8nctl credential transfer <id> --project <projectId>    # v1.4: move credential between n8n projects
 n8nctl tag list
 n8nctl tag create <name>                                 # max 24 chars (n8n limit)
+n8nctl tag update <id> <name>                            # v1.4: rename — guard-gated
+n8nctl tag delete <id> [--yes]                           # v1.4: guard-gated
 n8nctl auth login [--host <url>] [--profile <name>] [--insecure]
 n8nctl auth login --session [--email <addr>] [--cookie-only]   # v0.5: email/password for `workflow run` (/rest). Cookie+password in keyring. Use automation member user
 n8nctl auth status

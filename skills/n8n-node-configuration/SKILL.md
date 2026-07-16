@@ -14,6 +14,12 @@ description: Operation-aware node configuration for n8n workflows. Use when conf
 >
 > **Tooling:** validate with `n8nctl workflow validate <file> --profile ci` (Layer 6 checks param types).
 > The API-call snippets in the reference files are illustrative — use the n8nctl commands.
+>
+> **Validator catalog sync (n8nctl ≥ 1.3):** `n8nctl catalog sync` generates the offline validator
+> catalog from THIS instance's live node types (~400+ nodes incl. community, vs the 36-node bundled
+> snapshot); `catalog show` inspects it, `catalog reset` reverts. Needs session auth, stored per
+> profile. **Re-run after every n8n upgrade or community-node install** — stale catalog = wrong
+> typeVersion checks.
 
 ## Core Principles
 

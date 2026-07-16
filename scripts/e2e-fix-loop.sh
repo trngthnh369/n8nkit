@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # n8nkit E2E — failure -> fix -> redeploy loop, proving the fix-loop CLI primitives end-to-end.
-# NOT zero-side-effect: it creates a temporary INACTIVE workflow on PRODUCTION, runs it (so a few benign
-# execution records remain — n8nctl has no execution-delete verb), then DELETES the workflow. It is never
-# activated. The Code node only throws a marker string (allowlist blocks HTTP/external), so executions
-# contain NO customer data. This proves error-surface -> patch -> redeploy -> verify, NOT Claude's judgment.
+# NOT zero-side-effect while running: it creates a temporary INACTIVE workflow on PRODUCTION and runs it,
+# but cleanup deletes BOTH the workflow AND its execution records (`n8nctl execution delete`, ≥1.4) — the
+# instance is left as found. It is never activated. The Code node only throws a marker string (allowlist
+# blocks HTTP/external), so executions contain NO customer data. This proves error-surface -> patch ->
+# redeploy -> verify, NOT Claude's judgment.
 #
 # Requires explicit consent to run against prod. PREREQ: `n8nctl auth login --session --cookie-only`.
 # Usage: bash scripts/e2e-fix-loop.sh
@@ -53,7 +54,14 @@ echo "== 3. create INACTIVE on prod =="
 CREATE=$(n8nctl workflow create "$BROKEN" --json 2>&1) || { echo "create failed: $CREATE"; exit 1; }
 WID=$(printf '%s' "$CREATE" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const o=JSON.parse(s.replace(/^[^\[{]*/,""));console.log(o.id||(o.data&&o.data.id)||"")}catch(e){console.log("")}})')
 cleanup() {
-  if [ -n "$WID" ]; then echo "== cleanup: delete $WID =="; n8nctl workflow delete "$WID" --yes 2>&1 | head -1
+  if [ -n "$WID" ]; then
+    echo "== cleanup: delete execution records + workflow $WID =="
+    # Execution records first (workflow delete may orphan them). Best-effort: a failed record-delete
+    # must not block the workflow delete.
+    n8nctl execution list --workflow "$WID" --limit 50 --json 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const o=JSON.parse(s);const a=Array.isArray(o)?o:(o.data||[]);console.log(a.map(e=>e.id).filter(Boolean).join("\n"))}catch(e){}})' | while read -r exid; do
+      [ -n "$exid" ] && n8nctl execution delete "$exid" --yes 2>&1 | head -1
+    done
+    n8nctl workflow delete "$WID" --yes 2>&1 | head -1
   else n8nctl workflow list --json 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const a=JSON.parse(s.replace(/^[^\[{]*/,""));const l=Array.isArray(a)?a:(a.data||[]);console.log(l.filter(w=>w.name===process.argv[1]).map(w=>w.id).join(" "))}catch(e){}})' "$NAME" | tr " " "\n" | while read -r id; do [ -n "$id" ] && n8nctl workflow delete "$id" --yes 2>&1 | head -1; done
   fi
   rm -rf "$TMP"
@@ -86,5 +94,5 @@ EXID=$(n8nctl execution list --workflow "$WID" --limit 1 --json 2>/dev/null | no
 [ -n "$EXID" ] && { n8nctl workflow verify "$WID" --execution "$EXID"; echo "verify rc=$?"; }
 
 echo "== E2E FIX-LOOP PASS — error surfaced -> patched -> redeployed -> verified =="
-echo "note: workflow $WID will be deleted on exit; a few benign execution records remain (no execution-delete verb)."
+echo "note: cleanup on exit deletes workflow $WID AND its execution records (n8nctl >=1.4 execution delete)."
 # cleanup runs via trap

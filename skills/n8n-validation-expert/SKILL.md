@@ -5,7 +5,14 @@ description: Interpret validation errors and guide fixing them. Use when encount
 
 # n8n Validation Expert
 
-> **Tooling:** validate via **`n8nctl workflow validate <file> --strict`** (wraps `@trngthnh369/n8n-workflow-validator`, the source of truth). The **7-layer** validator (structural, node-sanity, referential, expression-balance, secrets [~18 patterns], param-types via 36-node catalog, settings-hygiene) also runs as `node <workflowRoot>/_pipeline/validate.js <file>` (a thin shim over the same package). The API-call snippets in the reference files are illustrative — use the n8nctl commands.
+> **Tooling:** validate via **`n8nctl workflow validate <file> --strict`** (wraps `@trngthnh369/n8n-workflow-validator`, the source of truth). The **7-layer** validator (structural, node-sanity, referential, expression-balance, secrets [~18 patterns], param-types via node catalog, settings-hygiene) also runs as `node <workflowRoot>/_pipeline/validate.js <file>` (a thin shim over the same package). The API-call snippets in the reference files are illustrative — use the n8nctl commands.
+>
+> **Layer-6 catalog source (n8nctl ≥ 1.3):** by default Layer 6 checks against the bundled 36-node
+> snapshot. **`n8nctl catalog sync`** replaces it with a catalog generated from THIS instance's live
+> node types (~400+ nodes incl. community) — param-type/typeVersion errors then reflect the real
+> instance. `catalog show` to inspect, `catalog reset` to revert. Needs session auth; per profile.
+> Re-run after every n8n upgrade / community-node install. An E062/E072 against the 36-node snapshot
+> for a node the instance actually has = sync the catalog, not a workflow bug.
 
 ## Validation Philosophy
 

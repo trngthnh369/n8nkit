@@ -135,6 +135,16 @@ Show the user:
 Optional preview: `n8nctl workflow update <id> <file> --dry-run` or `n8nctl workflow create <file> --dry-run`.
 
 ### Step 6 — Deploy as INACTIVE
+
+> **Sequencer alternative (n8nctl ≥ 1.4)**: `n8nctl workflow deploy <file> --create-only|--id <id>
+> --run --rollback-on-fail --validate-policy strict --out-dir <artifactDir>` collapses Steps 6-7
+> (normalize → validate → create-or-update → run + verify gate) into one command with automatic
+> rollback-on-fail. The gates of THIS skill still apply unchanged: Step 4 backup first (the
+> sequencer's rollback snapshot is in-memory only, failure-path only), Step 5 confirm before running
+> it, and **never pass `--activate` to the sequencer** — it activates BEFORE the run gate; Step 8's
+> separate activation confirm stays. Exit 3 = validation/name-ambiguity, 6 = gate fail (→ Step 7
+> interpretation), 1-5 = infra.
+
 ```bash
 # Create
 n8nctl workflow create <file>
