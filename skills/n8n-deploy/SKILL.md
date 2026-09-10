@@ -31,9 +31,20 @@ Before doing ANYTHING in this skill, verify ALL of the following:
 
 ---
 
-## ⚠️ ARTIFACT GATE (mandatory before Step 7 activate)
+## ⚠️ ARTIFACT GATE (mandatory before Step 6 — the FIRST production write)
 
-Trước khi activate workflow trên production (Step 7+8), tạo `.claude/artifacts/n8n-deploy-<workflowId>/`:
+Artifact phải tồn tại trước **lệnh ghi production đầu tiên**, tức Step 6 (`workflow create`/`update`/
+`deploy`), KHÔNG phải trước Step 7/8. Hook `pre-bash-n8n-prod-guard` gác cả `create` lẫn `update` —
+viết artifact sau Step 6 thì Step 6 bị chặn, không bao giờ tới được Step 7.
+
+Ghi artifact **2 lần** (xem Step 5b và Step 8):
+- **Lần 1 — sau Step 5 confirm, trước Step 6.** Update: đã có id → `n8n-deploy-<workflowId>/`, khai
+  `workflow_id`. Create: **chưa có id** → `n8n-deploy-<name-slug>/`, **bỏ trống `workflow_id`**
+  (không có gì để ràng; artifact khi đó chỉ ràng theo skill, đúng như `/n8n-cook`).
+- **Lần 2 — sau Step 6, trước Step 7/8.** Điền `workflow_id` thật (create vừa trả về) và re-emit để
+  marker còn tươi (<30') cho `activate`. Từ lúc này artifact ràng đúng workflow đang bị đụng.
+
+Nội dung `.claude/artifacts/n8n-deploy-<workflowId|name-slug>/`:
 
 **1. `context-snippets.json`** — workflow state evidence:
 ```json
@@ -62,7 +73,9 @@ Trước khi activate workflow trên production (Step 7+8), tạo `.claude/artif
 }
 ```
 
-**Activate FAILS** nếu artifact missing hoặc `verification.json.rollback_plan` thiếu. Mục đích: ép evidence "rollback plan đã chuẩn bị" trước khi touch production traffic.
+**Deploy (Step 6) và Activate (Step 8) đều FAIL** nếu artifact missing hoặc
+`verification.json.rollback_plan` thiếu. Mục đích: ép evidence "rollback plan đã chuẩn bị" trước khi
+ghi production, chứ không phải sau khi đã ghi rồi.
 
 ---
 
@@ -134,6 +147,17 @@ Show the user:
 
 Optional preview: `n8nctl workflow update <id> <file> --dry-run` or `n8nctl workflow create <file> --dry-run`.
 
+### Step 5b — Write the approval artifact (MANDATORY, ngay sau confirm, TRƯỚC Step 6)
+
+Xem "ARTIFACT GATE" ở đầu file cho schema đầy đủ. Tóm tắt:
+
+```
+update  → .claude/artifacts/n8n-deploy-<workflowId>/   + "workflow_id": "<id>"
+create  → .claude/artifacts/n8n-deploy-<name-slug>/    + KHÔNG có "workflow_id" (chưa tồn tại)
+```
+Cả hai file `context-snippets.json` + `verification.json` (kèm `rollback_plan`) phải có mặt trước khi
+chạy bất kỳ lệnh nào ở Step 6. Bỏ qua bước này → hook chặn Step 6, đúng thiết kế.
+
 ### Step 6 — Deploy as INACTIVE
 
 > **Sequencer alternative (n8nctl ≥ 1.4)**: `n8nctl workflow deploy <file> --create-only|--id <id>
@@ -154,6 +178,10 @@ n8nctl workflow update <id> <file>
 ```
 
 If the CLI returns exit code ≠ 0 → the workflow was NOT deployed. Read the error, show it to the user, ask whether to attempt a fix or abort.
+
+**Ngay sau khi Step 6 thành công (create path): re-emit artifact với `workflow_id` thật vừa nhận
+được** — rename thư mục `n8n-deploy-<name-slug>/` → `n8n-deploy-<workflowId>/` và ghi `workflow_id`
+vào cả 2 file. Không làm bước này thì `activate` ở Step 8 không được ràng vào workflow nào.
 
 ### Step 7 — Run test gate
 
