@@ -89,7 +89,9 @@ Phía CLI của "self-syncing catalog" ĐÃ XONG (`catalog sync` sinh validator 
 4. Live catalog / `catalog sync` / `workflow run` cần **session auth** (`n8nctl auth login --session
    --cookie-only`); API key bị 401 trên `/types/nodes.json`.
 5. **prod-guard**: verb mutating cần artifact tươi <30' trong `.claude/artifacts/n8n-<skill>-*/`
-   (theo payload cwd, walk-up 10 cấp). Khi n8nctl thêm verb mutating mới → update `MUTATING_RE` + test.
+   (theo payload cwd, walk-up 10 cấp), **và artifact phải liên quan**: thuộc skill thật sự chạy verb
+   đó (`VERB_SKILLS`) và khai đúng `workflow_id` đang bị ghi. Khi n8nctl thêm verb mutating mới →
+   update `MUTATING_VERBS` + `VERB_SKILLS` (2 bảng này thay `MUTATING_RE` cũ) + test.
 6. Skills surface **namespaced** `n8nkit:n8n-*`; auto-trigger theo description vẫn chạy. Verify headless:
    `cd build-workflow && claude -p "list Skills containing n8n ..."`.
 7. Sau mọi thay đổi hooks/scripts: `node scripts/test-hooks.cjs` (62 assertions) và nếu đụng plugin

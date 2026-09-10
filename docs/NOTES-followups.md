@@ -62,6 +62,30 @@ refactor, deferred.
 - **GitHub publish**: `plugin.json`/`marketplace.json` point at `github.com/trngthnh369/n8nkit` which has no
   remote yet. Push before any public `/plugin marketplace add trngthnh369/n8nkit`.
 
+### ⚠️ NỢ KỸ THUẬT — prod-guard chống VÔ TÌNH, KHÔNG chống CỐ Ý (mở, ghi 2026-09-10)
+
+**Đừng tưởng cổng này đã kín.** Bản vá 2026-09-10 (`pre-bash-n8n-prod-guard.cjs`) siết từ "có artifact
+nào đó" thành "artifact phải LIÊN QUAN": đúng skill thật sự chạy verb đó (`VERB_SKILLS`) + đúng
+`workflow_id` đang bị ghi. Cái đó chặn được **nhầm lẫn**: cầm nhầm artifact của skill khác, của workflow
+khác, artifact quá hạn, gõ thẳng verb mà quên chạy skill.
+
+**Cái nó KHÔNG chặn: người/agent cố ý.** Hook chỉ kiểm *nội dung* artifact, không kiểm *ai sinh ra nó*.
+Artifact chỉ là file JSON trong `.claude/artifacts/` — bất kỳ ai (kể cả một model đang muốn đi tắt) đều
+tự tay viết được `context-snippets.json` với đúng tên skill và đúng `workflow_id`, rồi chạy lệnh ghi
+production mà không hề đi qua skill gate nào. Đây chính xác là cách một pane đã bypass 3 lần trước khi
+có bản vá này — và bản vá **không** đóng được đường đó, chỉ làm nó khó vô tình vấp phải hơn.
+
+**Muốn chống cố ý thì artifact phải CHỨNG MINH được nguồn gốc**, ví dụ (chưa cái nào được chọn):
+- Skill ký artifact bằng HMAC với khoá chỉ skill đọc được → hook verify chữ ký. Yếu: khoá nằm cùng máy,
+  agent đọc được khoá thì ký được.
+- Artifact tham chiếu một `session_id` + `tool_use_id` có thật trong transcript, hook đối chiếu ngược lại
+  → gắn được artifact với một lượt AskUserQuestion/confirm thật sự đã xảy ra.
+- Đẩy quyết định ra ngoài tầm với của agent: cổng xác nhận nằm ở phía người dùng (PreToolUse ask thay vì
+  exit 2), hoặc n8n instance chỉ nhận write kèm token ngắn hạn do người cấp.
+
+Trong lúc chưa làm: **coi prod-guard là hàng rào an toàn, không phải hàng rào bảo mật**. Với hành vi cố ý,
+control thật vẫn là backup (`workflow backup` trước mọi update) + `/n8n-rollback` + log execution.
+
 ## Resolved in 0.1.1–0.3.0 (was deferred/known-issue)
 
 - Guard path-coupling → **fixed**: guards are config-driven (`resolveWorkflowRoot`), legacy `build-workflow`
