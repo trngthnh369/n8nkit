@@ -115,12 +115,13 @@ r = run('pre-n8n-secret-guard.cjs', { cwd: os.tmpdir(), tool_input: { file_path:
 check('clean content in config-scoped path → silent (exit 0)', r.code === 0 && r.out.trim() === '', `code=${r.code} out=${r.out.trim()}`);
 
 console.log('== pre-bash-n8n-prod-guard ==');
-// Project WITH a fresh approval artifact.
+// Project WITH a fresh approval artifact. The artifact must be RELEVANT to the command it
+// authorizes: /n8n-fix runs `workflow update`, and the id it names is the one being written.
 const PROJ = path.join(os.tmpdir(), 'n8nkit-test-proj');
-const ARTF = path.join(PROJ, '.claude', 'artifacts', 'n8n-fix-123');
+const ARTF = path.join(PROJ, '.claude', 'artifacts', 'n8n-fix-42');
 fs.mkdirSync(ARTF, { recursive: true });
 const marker = path.join(ARTF, 'context-snippets.json');
-fs.writeFileSync(marker, JSON.stringify({ workflow_id: '123' }));
+fs.writeFileSync(marker, JSON.stringify({ workflow_id: '42' }));
 // Project with its OWN empty artifacts dir (hermetic: findArtifactsDir stops here, finds nothing).
 const EMPTY = path.join(os.tmpdir(), 'n8nkit-test-empty');
 fs.mkdirSync(path.join(EMPTY, '.claude', 'artifacts'), { recursive: true });
@@ -133,7 +134,8 @@ check('mutating verb + no artifact → BLOCK (exit 2)', r.code === 2 && /BLOCKED
 
 const stale = Date.now() / 1000 - 40 * 60;
 fs.utimesSync(marker, stale, stale);
-r = run('pre-bash-n8n-prod-guard.cjs', { cwd: PROJ, tool_input: { command: 'n8nctl workflow promote 42 --to prod' } });
+// Same skill + same id as the artifact, so STALENESS is the only thing that can block it.
+r = run('pre-bash-n8n-prod-guard.cjs', { cwd: PROJ, tool_input: { command: 'n8nctl workflow update 42 wf.json' } });
 check('mutating verb + stale artifact (>30min) → BLOCK (exit 2)', r.code === 2 && /BLOCKED/.test(r.out), `code=${r.code} out=${r.out.trim()}`);
 const fresh = Date.now() / 1000;
 fs.utimesSync(marker, fresh, fresh);
