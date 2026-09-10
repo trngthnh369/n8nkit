@@ -52,6 +52,10 @@ done
 ### Step 3 — audit mode → report + END
 Write `.claude/artifacts/n8n-credentials-<date>/report.json` (names/ids/usage only — NO values). Stop.
 
+> ⚠️ `report.json` **cố tình KHÔNG phải approval marker**. Hook `pre-bash-n8n-prod-guard` chỉ nhận
+> `context-snippets.json` / `verification.json`. Audit là read-only nên nó **không được** authorize
+> bất kỳ lệnh ghi nào — đừng đổi tên file này để "cho tiện". Đường ghi có artifact riêng ở Step 6/9.
+
 ### Step 4 — create: fetch the schema
 ```bash
 n8nctl credential schema <type>
@@ -62,8 +66,15 @@ Write a template to a hardened temp path (never under `<workflowRoot>`), with `<
 every secret field — see ROTATION.md for the ACL/random-name recipe. Tell the user to fill the real values
 themselves (or point Claude at a file they already prepared). **Claude does not write the values.**
 
-### Step 6 — create: CONFIRM
+### Step 6 — create: CONFIRM + approval artifact
 Show name, type, and target host. Remind the user the values were supplied by them, not Claude.
+
+Sau khi user confirm, **trước** Step 7, ghi `.claude/artifacts/n8n-credentials-<date>/context-snippets.json`:
+```json
+{ "credential_name": "<name>", "credential_type": "<type>", "target_host": "<host>",
+  "approved_at": "<iso — ghi SAU khi user confirm>" }
+```
+KHÔNG có giá trị secret nào trong file này. Thiếu artifact → hook chặn `n8nctl credential create`.
 
 ### Step 7 — create: submit + cleanup
 ```bash
@@ -78,7 +89,17 @@ Do Steps 4–7 for the replacement credential (new name/version).
 ### Step 9 — rotate: repoint consuming workflows (one at a time)
 For each workflow from the Step 2 usage scan: edit only the node `credentials` block to the new credential
 (minimal diff) → `n8nctl workflow diff <id> <file>` → confirm THIS workflow (deploy-convention) →
-`n8nctl workflow update <id> <file>` → verify. See ROTATION.md for the sequence + matrix.
+**ghi approval artifact CỦA RIÊNG workflow đó** → `n8nctl workflow update <id> <file>` → verify.
+See ROTATION.md for the sequence + matrix.
+
+Artifact per-workflow (một thư mục cho mỗi workflow, ghi sau confirm của chính nó):
+```
+.claude/artifacts/n8n-credentials-<workflowId>/context-snippets.json
+{ "workflow_id": "<id>", "old_credential": "<name>", "new_credential": "<name>",
+  "backup_path": "<path>", "rollback_command": "/n8n-rollback <id>", "approved_at": "<iso>" }
+```
+Hook ràng `workflow_id` này với id đang bị update: artifact của workflow A **không** authorize update
+workflow B. Đó là lý do rotation phải đi từng workflow một, đúng như Rules bên dưới đã yêu cầu.
 
 ### Step 10 — rotate: retire the old credential
 n8n's Public API has no credential-delete flow in the kit → instruct the user to delete it in the n8n UI.
