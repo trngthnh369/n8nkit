@@ -1,6 +1,6 @@
 # n8n / Google Sheets gotchas - Pierre Cardin VN (field notes)
 
-> Consolidated 2026-09-12 from per-project Claude memory (build-workflow, ai-training-tracker, ai-honeys-fb-poster) - 18 facts that were duplicated in 3 silos.
+> Consolidated 2026-09-12 from per-project Claude memory (build-workflow, ai-training-tracker, ai-honeys-fb-poster) - 31 facts that were duplicated across 3 silos (18 on 2026-09-12 pass 1, 13 more on pass 2).
 > Each section keeps the original memory body (Vietnamese, with **Why** / **How to apply**). Load on demand when building or debugging n8n + Sheets workflows.
 > Source of truth is THIS file now; the old memory files are archived under each silo's memory/archive/2026-09/.
 
@@ -24,6 +24,19 @@
 - [feedback_n8n_cron_uses_workflow_timezone](#feedback-n8n-cron-uses-workflow-timezone) - n8n scheduleTrigger cronExpression chạy theo settings.timezone của workflow, KHÔNG phải UTC — set giờ UTC là sai lệch 7h.
 - [feedback_n8n_cred_placeholder_silent_fail](#feedback-n8n-cred-placeholder-silent-fail) - n8n chấp nhận credential ID là literal \"REPLACE_WITH_YOUR_CREDENTIAL_ID\" (template placeholder) — workflow active nhưng silent-fail mọi cr
 - [feedback_sa_drive_no_quota](#feedback-sa-drive-no-quota) - SA `n8n-bot` 0 Drive quota → mọi upload 403. Workaround đã verify 2026-04-21 - dùng n8n credential OAuth2 user `QTCDjfnubZJpCDoJ` (name "Goo
+- [feedback_n8nctl_update_strips_fields](#feedback-n8nctl-update-strips-fields) - n8nctl workflow update gửi extra fields gây 400; bypass bằng curl PUT với chỉ name+nodes+connections+settings
+- [feedback_n8n_code_multibranch_bug](#feedback-n8n-code-multibranch-bug) - n8n Code node $() access fails khi node có nhiều input connections từ branches parallel. Phải dùng sequential chain hoặc Merge node.
+- [feedback_n8n_cron_manual_race](#feedback-n8n-cron-manual-race) - Khi manual n8nctl workflow run fire trong cùng cron window, anti-concurrency guard 90s không đủ (pipeline ~4 min) → workflow pick next pendi
+- [feedback_n8n_googleapi_http_scope](#feedback-n8n-googleapi-http-scope) - Cách gọi raw Google API (Sheets batchUpdate...) từ n8n bằng Service Account credential trong HTTP Request node + scope gotcha
+- [feedback_n8n_node_id_must_be_random_uuid](#feedback-n8n-node-id-must-be-random-uuid) - 
+- [feedback_n8n_no_require_luxon](#feedback-n8n-no-require-luxon) - n8n self-hosted ở $N8N_HOST không cho `require('luxon')` trong Code node. Dùng global `DateTime` trực tiếp (n8n inject sẵn).
+- [feedback_n8n_sheets_trigger_needs_oauth2](#feedback-n8n-sheets-trigger-needs-oauth2) - n8n Google Sheets Trigger node yêu cầu OAuth2, KHÔNG hoạt động với Service Account
+- [feedback_google_sheet_formatting_convention](#feedback-google-sheet-formatting-convention) - Standard formatting cho mọi Google Sheet dùng trong n8n workflows — font JetBrains Mono 10, header bold+center, tab name lowercase snake_cas
+- [feedback_n8n_ghost_executions](#feedback-n8n-ghost-executions) - n8n queue mode đôi lúc tạo ghost executions (status=running nhưng 0 nodes fire) block worker queue
+- [feedback_n8n_webhook_no_register_via_api](#feedback-n8n-webhook-no-register-via-api) - Trên instance $N8N_HOST, workflow tạo hoặc update qua n8nctl/REST API không tự động register webhook URL — request POST /webhook/* trả 404 d
+- [reference_n8n_internal_rest_run](#reference-n8n-internal-rest-run) - Autonomous trigger pattern cho n8n self-hosted khi webhook router stuck — login /rest/login cookie → POST /rest/workflows/{id}/run với workf
+- [feedback_ifd_mail_gateway_link_rewrite](#feedback-ifd-mail-gateway-link-rewrite) - Mail gateway mail.ifd.vn (SMTP it02@ifd.vn) rewrite mọi <a href> link → subdomain tracking url####.ifd.vn bị NXDOMAIN → link chết. Dùng plai
+- [feedback_self_challenge_workflow_design](#feedback-self-challenge-workflow-design) - Khi user yêu cầu build n8n workflow mới, PROACTIVELY tự challenge approach ban đầu với 3 câu hỏi (flaws, edge cases, alternative patterns) t
 
 ## feedback_n8n_run_verb_fires_production
 
@@ -542,3 +555,411 @@ Trên n8n project build-workflow có 2 credential Google Drive:
 - KHÔNG dùng SA (`OyQwCVortHcv2gmc`) cho Drive upload nữa — chắc chắn fail.
 - Đã áp dụng trong `ai-digital-marketing-content/workflows/_build_sub_carousel_publisher.py::DRIVE_ARCHIVE_NODE` (fan-out parallel với FB upload từ Extract_Image_Binary, `onError='continueRegularOutput'` để Drive fail không block FB path).
 - Nếu cần hosting PUBLIC (FB Graph photos qua URL field): upload bằng OAuth2 cred xong publish file với permission `type=anyone`, reader qua webContentLink. Hoặc tốt hơn — upload binary trực tiếp lên FB `/photos` với `source` multipart field (đang áp dụng ở sub-carousel-publisher).
+
+## feedback_n8nctl_update_strips_fields
+
+<!-- source: build-workflow-ai-training-tracker mtime 2026-07-20 -->
+_n8nctl workflow update gửi extra fields gây 400; bypass bằng curl PUT với chỉ name+nodes+connections+settings_
+
+# Bug: `n8nctl workflow update` returns 400 Bad Request
+
+**Why**: n8nctl gửi full workflow JSON (gồm `id`, `versionId`, `createdAt`, `updatedAt`, `active`, `staticData`, `pinData`, `tags`, `meta`, `triggerCount`, etc.) trong PUT body. n8n Public API v1 PUT `/workflows/{id}` chỉ accept **4 fields top-level**: `name`, `nodes`, `connections`, `settings`. Extra fields → 400.
+
+**How to apply**:
+- Validator pass nhưng `n8nctl workflow update` vẫn 400 → bypass bằng curl direct:
+```python
+payload = {k: wf[k] for k in ('name','nodes','connections','settings') if k in wf}
+PUT /api/v1/workflows/{id} với payload đã strip
+```
+- Verified 2026-05-12 trên Digital workflow `lI2axyT8qp6AJhIv`: n8nctl update fail → curl direct PUT 200 OK, workflow stays active.
+- Memory note: lần update tiếp theo nếu n8nctl 400 → curl bypass thay vì debug schema. Báo cáo bug cho `@trngthnh369/n8nctl` package maintainer khi tiện.
+
+
+## feedback_n8n_code_multibranch_bug
+
+<!-- source: build-workflow-ai-training-tracker mtime 2026-07-20 -->
+_n8n Code node $() access fails khi node có nhiều input connections từ branches parallel. Phải dùng sequential chain hoặc Merge node._
+
+# n8n `$('OtherNode').all()` trả 0 items khi multi-branch input
+
+## Triệu chứng
+Code node nhận input từ nhiều upstream nodes (3+ branches parallel converge), gọi `$('OtherNode').all()` để reach back lấy output của node khác trả về `[]` dù node đó thực sự output nhiều items.
+
+**Verified case** (AI PM Sub-1, n8n 1.122.5, 2026-05-22):
+```
+Connections: Trigger → [Read Trends, Read Competitor, Read Social] → Aggregate Signals
+```
+- `Read Competitor` outputs 856 items (verified via execution log)
+- Trong `Aggregate Signals` code: `$('Read Competitor').all()` returns `[]`
+- `_source_stats.competitor_raw = 0` dù sheet có 856 rows
+
+## Why
+n8n's `$()` accessor có quirk khi current node có multiple input branches converging. Items context bị fragment theo branch — `$()` chỉ thấy 1 branch.
+
+## Fix verified
+Đổi connections thành SEQUENTIAL CHAIN:
+```
+Trigger → Read Trends → Read Competitor → Read Social → Aggregate Signals
+```
+Aggregate có 1 input branch → `$('Read Competitor').all()` work bình thường, trả 856 items.
+
+Alternative: dùng `Merge` node (mode: Multiplex / Combine) trước Code node để consolidate branches.
+
+## How to apply
+- KHÔNG dùng parallel branches → 1 Code node mà cần `$()` access
+- Mặc định luôn sequential chain cho Code nodes có multi-source
+- Document trong workflow comment để future-self không lặp lại
+
+Related: [[feedback-no-examples-in-prompts]] (other prompting gotchas)
+
+
+## feedback_n8n_cron_manual_race
+
+<!-- source: build-workflow mtime 2026-06-12 -->
+_Khi manual n8nctl workflow run fire trong cùng cron window, anti-concurrency guard 90s không đủ (pipeline ~4 min) → workflow pick next pending day → 2 bài đăng cách nhau 2 phút (spammy)_
+
+Trên ai-ceo-diary-fanpage workflow `0Xv3rMXX8XImcHo7`, 2 fire trong cùng 2 phút → 2 bài đăng FB cách nhau ~2 min:
+- 12:00:00 VN: cron `0 12 * * *` fire (mode=trigger) → claim day 5 → posted 12:04
+- 12:01:52 VN: `n8nctl workflow run` smoke test (mode=manual) → claim day 6 → posted 12:06
+
+Anti-concurrency guard 90s trong Select Next Pending hết hạn lúc 12:01:35 (90s sau lock day 5 ở 12:00:05). Smoke test 12:01:52 chạy Select Next Pending → guard không trigger → pick day 6 (smallest pending vì day 5 đang PUBLISHING).
+
+**Why**: pipeline gpt-image-2 high mất ~3-4 phút. Guard 90s chỉ cover 25% pipeline → race window rộng.
+
+**How to apply**:
+1. Bump anti-concurrency window từ 90s → **600s (10 phút)** trong Select Next Pending jsCode. Cover full pipeline + buffer.
+2. Variable rename cho rõ ràng: `recent_post_lt_90s` → `recent_post_lt_600s`, `concurrent_publishing` → `concurrent_publishing_lt_600s`.
+3. **Tránh fire manual** test trong window cron schedule ±10 phút (vd cron 12:00 → tránh 11:50-12:10 manual fire).
+4. Verified 2026-06-12: bumped 90s→600s, day 6 đã delete + reset → pending.
+
+**Bonus discovery**: cron n8n trên n8npc instance THỰC SỰ FIRE đúng schedule (despite earlier router-stuck concerns). Memory [[feedback_n8npc_instance_save_only.md]] về cron không register cần update — sau nhiều UI Save + thời gian, router có thể self-heal hoặc instance restart làm cron hoạt động.
+
+Liên quan [[feedback_fb_photos_code1_orphan_post.md]] (FB code=1 paradox cũng tạo duplicate, nhưng khác cơ chế).
+
+
+## feedback_n8n_googleapi_http_scope
+
+<!-- source: build-workflow-ai-training-tracker mtime 2026-07-20 -->
+_Cách gọi raw Google API (Sheets batchUpdate...) từ n8n bằng Service Account credential trong HTTP Request node + scope gotcha_
+
+Để gọi **raw Google API** (vd Sheets `spreadsheets:batchUpdate`) từ n8n bằng Service Account, dùng HTTP Request node (typeVersion 4.2) với `authentication: "predefinedCredentialType"` + `nodeCredentialType: "googleApi"` + credential id. Hỗ trợ từ n8n v0.225.0.
+
+**2 điều kiện trên credential `googleApi` (Service Account), set trong n8n UI** (n8n public API KHÔNG update credential được — chỉ create/delete):
+1. Bật toggle **"Set up for use in HTTP Request node"** (`httpNode: true`).
+2. Field **Scope(s)** PHẢI có scope cần dùng, vd `https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive`. Thiếu → token mint OK nhưng Google trả `403 "Request had insufficient authentication scopes"` (auth thành công, scope sai — KHÔNG phải lỗi credential). Scope này độc lập với googleSheets node (node tự mint scope riêng), nên thêm scope KHÔNG ảnh hưởng googleSheets nodes hiện có.
+
+**Use case chính**: gộp nhiều Sheets writes thành 1 call để né quota 60 writes/min. `spreadsheets.batchUpdate` cho phép trộn `updateCells` (GridRange theo cột vật lý, `startRowIndex = row_number - 1`, end-index exclusive) + `appendCells` (POSITIONAL theo header order — phải verify thứ tự cột) trong 1 request. Áp dụng cho AI SEO Manager sub-writer 2026-06-01 (xem [[feedback_n8n_sheets_ratelimit_cascade]]).
+
+⚠️ HTTP Request node BẮT BUỘC có `method` explicit (validate.js block nếu thiếu). googleSheets/openAi/merge nodes thiếu `resource`/`operation`/`mode` → validate.js báo E061/false-positive dù n8n runtime default được; thêm explicit (`resource:"sheet"`+`operation:"read"/"update"`, openAi `resource:"text"`+`operation:"message"`, merge `mode:"append"`) để qua deploy hook.
+
+**Local SA key** `service-account/gen-lang-client-0477135314-45a1b1cee429.json` = CÙNG Service Account với n8n cred `OyQwCVortHcv2gmc` (`n8n-bot@gen-lang-client-0477135314.iam.gserviceaccount.com`) → đọc/ghi được mọi sheet n8n-bot có access (vd SEO sheet `1w4Bz...`). Dùng để verify writes / đọc header / recon mà không cần qua n8n.
+
+
+## feedback_n8n_node_id_must_be_random_uuid
+
+<!-- source: build-workflow-ai-training-tracker mtime 2026-07-20 -->
+Khi xây workflow JSON tay, **PHẢI** dùng `uuid.uuid4()` (Python) / `crypto.randomUUID()` (JS) để generate node IDs. KHÔNG dùng pattern dễ đọc kiểu `a0000001-0001-4001-8001-a00000000001`.
+
+**Why**: Dù pattern format đúng UUIDv4 spec (regex match), n8n internal routing/registration có thể hash-route theo node ID. Pattern deterministic giống nhau giữa các workflow → router collision → webhook/cron KHÔNG register dù workflow active. Verified 2026-06-09 trên ai-ceo-diary-fanpage: 21 nodes với pattern `aXXXXXXX-XXXX-4XXX-8XXX-aXXXXXXXXXXX` → webhook 404/register fail liên tục, dù validator PASS và workflow active.
+
+**How to apply**: 
+- Mọi node mới khi build JSON tay phải có ID từ `uuid.uuid4()`
+- Khi copy node từ template, **regenerate ID** trước khi gắn vào workflow mới
+- n8n connections là theo node NAME, không phải ID → đổi ID không break connections
+- Sau khi regen, push qua API rồi user UI Save 1 lần để n8n re-register với ID mới
+
+Liên quan [[feedback_n8n_webhook_no_register_via_api]], [[feedback_n8npc_instance_save_only]] (trước đây nghĩ chỉ do instance type queue mode, nhưng pattern UUID có thể là root cause song song).
+
+Code snippet đúng:
+```python
+import json, uuid
+wf = json.load(open(path))
+for n in wf['nodes']:
+    n['id'] = str(uuid.uuid4())
+# connections by NAME — không cần update
+```
+
+
+## feedback_n8n_no_require_luxon
+
+<!-- source: build-workflow-ai-training-tracker mtime 2026-07-20 -->
+_n8n self-hosted ở $N8N_HOST không cho `require('luxon')` trong Code node. Dùng global `DateTime` trực tiếp (n8n inject sẵn)._
+
+# n8n không cho `require('luxon')` trong Code node
+
+## Rule
+KHÔNG dùng `const { DateTime } = require('luxon');` trong Code node của workflow trên instance `n8npc.khoahrv.id.vn`. Dùng global `DateTime` trực tiếp:
+
+```js
+// SAI — sẽ throw "VMError: Cannot find module 'luxon'"
+const { DateTime } = require('luxon');
+const now = DateTime.now().setZone('Asia/Ho_Chi_Minh');
+
+// ĐÚNG — DateTime đã được n8n inject sẵn
+const now = DateTime.now().setZone('Asia/Ho_Chi_Minh');
+```
+
+**Why:** n8n Code node chạy trong VM2 sandbox, instance này không bật `NODE_FUNCTION_ALLOW_EXTERNAL=luxon` env var. Verified bằng execution 15036 lỗi `VMError: Cannot find module 'luxon'`. Memory commit `4b0aaed` (refactor AI Ads Manager) cũng đã fix issue này trước.
+
+**How to apply:**
+- Khi build workflow mới có Code node dùng Luxon, KHÔNG require — dùng global `DateTime` trực tiếp
+- Library khác (lodash, axios, etc.) cũng có thể bị block tương tự — test trước hoặc dùng global của n8n
+- Validate offline (n8nctl validate) KHÔNG bắt được lỗi này — chỉ phát hiện khi runtime
+
+
+## feedback_n8n_sheets_trigger_needs_oauth2
+
+<!-- source: build-workflow mtime 2026-06-01 -->
+_n8n Google Sheets Trigger node yêu cầu OAuth2, KHÔNG hoạt động với Service Account_
+
+n8n **Google Sheets Trigger** node (`n8n-nodes-base.googleSheetsTrigger`) **chỉ chạy với OAuth2** (credential type `googleSheetsTriggerOAuth2Api`), **KHÔNG nhận Service Account** (`googleApi`). Set `authentication: serviceAccount` + gắn cred googleApi → activate fail **400 `"Node ... does not have any credentials of type googleApi defined"`** (dù cred đã gắn đúng trong JSON). Verified 2026-06-01 (spike cho AI SEO Manager event-driven trigger).
+
+→ Để có event-driven "row added → run" với SA-only setup, KHÔNG dùng được Sheets Trigger node. Workaround:
+1. **Frequent schedule-poll** (recommended, zero setup): workflow schedule chạy mỗi 3-5 phút, READ topics bằng SA (works), filter PENDING → chạy/dispatch. ≤5min latency. Cần lock guard (config cell `run_lock_until` + reconciliation lock-aware) để tránh 2 run song song + reconciliation reset nhầm topic live.
+2. Hoặc set up Google OAuth2 cred (UI OAuth flow + Google Cloud OAuth client) rồi mới dùng Sheets Trigger thật (~1min).
+
+Khác với HTTP Request node — node đó NHẬN được SA (xem [[feedback_n8n_googleapi_http_scope]]). Trigger nodes Google nói chung thiên về OAuth2.
+
+
+## feedback_google_sheet_formatting_convention
+
+<!-- source: build-workflow-ai-training-tracker mtime 2026-07-20 -->
+_Standard formatting cho mọi Google Sheet dùng trong n8n workflows — font JetBrains Mono 10, header bold+center, tab name lowercase snake_case English, alternative color_
+
+Khi tạo hoặc cấu hình Google Sheet cho dự án n8n workflow, áp dụng convention sau MẶC ĐỊNH (không cần user yêu cầu lại):
+
+**Font & size:**
+- Font: `JetBrains Mono`
+- Size: `10`
+
+**Header row:**
+- Bold (weight 700)
+- Horizontal alignment: CENTER
+- Nền có thể hơi tối để phân biệt (theo alternative color palette của sheet)
+
+**Alternative row color:**
+- Áp dụng `alternating colors` (banded rows) — dùng preset hoặc custom theo color của sheet đầu tiên user đã config
+- Reference sheet 1 user đang dùng để lấy màu palette (đọc format trước khi apply cho tab mới)
+
+**Column width:**
+- Auto-fit (auto-resize) theo content — không hardcode width
+
+**Naming convention:**
+- **Tên file Sheet**: English, có thể dùng space hoặc snake_case
+- **Tên tab sheet**: lowercase, English, underscore-separated (`snake_case`). VD: `config_positions`, `results_tracking`, `processed_files`, `errors_log`
+- **Column header**: lowercase snake_case English (consistency với tab name)
+
+**Why:** User explicit feedback 2026-04-23: muốn consistency + readable cho engineer (JetBrains Mono), tab name English dễ reference từ n8n workflow JSON.
+
+**How to apply:**
+- Khi tạo Sheet mới hoặc tab mới → apply toàn bộ format trên trong 1 lần batch request
+- Dùng Sheets API `batchUpdate` với requests: `updateCells` (format) + `updateDimensionProperties` (auto-resize) + `updateSheetProperties` (alternate color)
+- Trước khi apply alternative color, đọc sheet đầu tiên user đã config để lấy palette match
+- Nếu user config sheet đầu tiên chưa có thì dùng default palette: header `#E8EAED`, even row `#F8F9FA`, odd row `#FFFFFF`
+
+
+## feedback_n8n_ghost_executions
+
+<!-- source: build-workflow-ai-training-tracker mtime 2026-07-20 -->
+_n8n queue mode đôi lúc tạo ghost executions (status=running nhưng 0 nodes fire) block worker queue_
+
+n8n self-hosted (queue mode hoặc instance restart mid-run) đôi lúc để lại **ghost executions**: status = `running` nhưng `data.resultData.runData` rỗng, `lastNodeExecuted` undefined, `stoppedAt: null`. Thường xảy ra khi:
+- Worker crash giữa execution mới được pick
+- Instance restart mid-execution
+- Queue mode worker disconnect
+
+**Why:** Trigger sinh DB row execution → worker chưa kịp bind/start nodes → instance state mất. Trigger không retry, execution kẹt vĩnh viễn.
+
+**How to apply:**
+- Symptom: workflow active, polling trigger schedule fire nhưng list `n8nctl execution list --workflow <id>` cho thấy execution `running` rất lâu (giờ+) mà sub-workflows (writer/scorer) đều idle. Watcher poll mới không xuất hiện trong list → queue block.
+- Verify: `n8nctl execution get <id> --logs` → 0 nodes run, lastNodeExecuted undefined.
+- Cleanup: **xoá execution qua UI** (Executions panel → filter status=Running → Delete) hoặc `DELETE /api/v1/executions/{id}` (Public API v1 hỗ trợ). n8nctl không có verb stop/delete execution (verified 2026-06-16).
+- Sau cleanup, watcher poll tiếp theo (3min) fire bình thường.
+- Trường hợp 2026-06-16: 3 watcher (Topic Watcher AI SEO Manager) kẹt từ 12:33-12:39 VN sau khi 1 orchestrator dài 252s + writer chain xong → instance/worker bị gián đoạn. Sheet `0 PENDING/0 PROCESSING` → ghost không gây mất data, chỉ block event-driven.
+
+**Mitigation lâu dài:** Đặt timeout settings.executionTimeout phía workflow (n8n hỗ trợ qua settings.executionTimeout) — sẽ tự fail execution nếu vượt threshold, giải phóng worker. Watcher hiện không set timeout nên ghost không tự dọn.
+
+## Ghost SAU KHI stop (2026-07-09, exec 84392 AI PM)
+Cancel 1 execution đang chạy thật cũng đẻ ra ghost. Trình tự đã verify:
+- `POST /rest/executions/{id}/stop` (session cookie) → **HTTP 200 trả `status: canceled`**, NHƯNG DB row vẫn `running`, `stoppedAt: null`. Response body NÓI DỐI — phải re-`GET` để verify.
+- `n8nctl execution delete <id>` lúc đó → **400 Bad Request** (n8n từ chối xoá execution `running`).
+- `DELETE /rest/executions/{id}` → **404, route không tồn tại** (n8n dùng `POST /rest/executions/delete` với body `{ids:[...]}`).
+- **Fix: gọi `/stop` LẦN 2** → lúc này `GET` mới thấy `status: canceled` + `stoppedAt` có giá trị → `n8nctl execution delete <id> --yes` chạy được.
+
+**How to apply:** sau mọi lần stop, LUÔN `n8nctl execution get <id>` verify `status`+`stoppedAt` thay vì tin response của `/stop`. Nếu còn `running` → stop lại rồi mới delete. Backup `--logs` ra file TRƯỚC khi delete (record biến mất vĩnh viễn).
+
+Related: [[feedback_n8n_run_verb_fires_production]]
+
+
+## feedback_n8n_webhook_no_register_via_api
+
+<!-- source: build-workflow-ai-training-tracker mtime 2026-07-20 -->
+_Trên instance $N8N_HOST, workflow tạo hoặc update qua n8nctl/REST API không tự động register webhook URL — request POST /webhook/* trả 404 dù workflow.active=true._
+
+# n8n webhook không auto-register qua API trên instance này
+
+## Triệu chứng
+- Tạo workflow có Webhook trigger qua `n8nctl workflow create/update`
+- Workflow ở trạng thái `active=true` (verified qua API)
+- Request POST `$N8N_HOST/webhook/<path>` trả `404 "webhook not registered"`
+- Bounce active state (deactivate + activate) **không** fix
+- `n8nctl workflow update --activate` cũng không fix
+
+## Root cause
+n8n self-hosted ở `n8npc.khoahrv.id.vn` có bug: webhook router chỉ refresh khi workflow được Save qua UI. API path không trigger re-registration.
+
+Có thể do n8n chạy queue mode (multiple workers) và webhook cần register trên mọi worker, nhưng API chỉ chạm 1 worker.
+
+## How to work around
+
+**Khi cần test workflow có webhook trigger:**
+1. **Cách 1 (đơn giản nhất):** Bảo user mở workflow trong UI, bấm Save (Ctrl+S) — webhook register ngay
+2. **Cách 2:** Bảo user click "Execute Workflow" button trong UI để chạy bằng Manual Trigger (không cần webhook)
+3. **Cách 3 (nếu có shell):** SSH vào host, restart n8n service
+
+**Khi build workflow mới:**
+- Đừng dựa vào webhook trigger để smoke test qua API
+- Dùng Manual Trigger + bảo user click "Execute Workflow" trong UI
+- Hoặc dùng Schedule trigger với cron sát thời điểm test (5 phút sau) — **2026-05-20: cách này CŨNG fail** — schedule trigger registry cũng không refresh, fire time qua mà 0 execution
+
+## 2026-05-20 update — version bump KHÔNG fix
+Test bumping webhook 2→2.1 + scheduleTrigger 1.2→1.3 + executeWorkflow 1.2→1.3 trên AI Product Manager orchestrator. Sau PUT update + deactivate/activate cycle:
+- Webhook vẫn 404
+- Schedule trigger không fire dù cron đặt 2 phút sau
+
+Confirm: vấn đề thuần network architecture (registry không reload từ Public API), KHÔNG liên quan node version.
+
+**Cách duy nhất**: User mở UI → workflow → Save (no changes needed).
+
+## How to apply
+- Không lãng phí thời gian thử bounce activate, update --activate, retry trigger, hoặc bump node version
+- Communicate sớm với user: "webhook không reg qua API, bạn save UI 1 lần để register, sau đó cron + webhook work bình thường"
+- Monitor execution qua `curl /api/v1/executions?workflowId=X` polling
+
+## 2026-05-20 update — verified more nuance
+
+- **Sub-workflow PUT KHÔNG break webhook**: Code/HTTP nodes trong sub-workflow update qua PUT chạy ngay lần execute tiếp theo. KHÔNG cần UI save sub-workflows.
+- **Orchestrator PUT BREAKS webhook**: Bất kỳ update nào trong orchestrator (Code, settings, connections) → webhook un-register → 404. Phải UI save lại.
+- **Activate/Deactivate cycle không fix** webhook trong cả 2 trường hợp.
+
+## 2026-06-01 update — STALE VERSION + deactivate/activate NAY reload được
+
+Behavior đã đổi (n8n upgrade?) so với note 2026-05-20. Verified trên AI PM orchestrator `hMOE5pwuaYpSKxl2`:
+- **Webhook KHÔNG 404 nữa**: nếu path đã register từ UI save trước đó, POST `/webhook/ai-product-manager-trigger` vẫn accept + execute (hang chờ responseNode ~3min).
+- **NHƯNG webhook execute STALE workflow definition** sau khi PUT update qua API: PUT đổi cache nodes batchGet→googleSheets, live GET cho thấy googleSheets, nhưng exec qua webhook vẫn chạy version batchGet cũ (cache_warnings báo lỗi của batchGet).
+- **FIX 2026-06-01: deactivate + activate qua API ĐÃ reload definition** — exec sau cycle chạy version mới (googleSheets). `POST /api/v1/workflows/{id}/deactivate` rồi `/activate`, sleep 2-3s giữa. Khác hẳn note 2026-05-20 "deactivate/activate không fix".
+- **How to apply**: sau khi PUT update orchestrator + muốn webhook-test ngay → BẮT BUỘC deactivate/activate cycle trước khi fire webhook, nếu không sẽ test nhầm version cũ. Schedule cron (production) cũng load version mới sau cycle này.
+- **GPT-5 vs gpt-5-mini trong n8n**: GPT-5 là reasoning model — `reasoning_tokens` ăn hết `max_completion_tokens` budget → content rỗng. Pattern Content Manager dùng `gpt-5-mini` (proven). Nếu phải dùng gpt-5, set `max_completion_tokens` rất cao (>8000) hoặc thêm `reasoning_effort: "minimal"` trong request body.
+
+## 2026-06-10 update — n8nctl v0.5.0 `workflow run` = giải pháp firing chính thức
+
+Để **execute/E2E-test** workflow KHÔNG cần webhook register, dùng `n8nctl workflow run <id> [--trigger <node>] --wait` (v0.5.0) — hit `/rest/workflows/{id}/run` (session cookie), **bypass webhook router**. executionId trả ngay, `--wait` poll `/rest/executions`. Đây là cách thay cho "đợi UI Save rồi trigger-webhook". Live-verified trên n8n 1.122.5.
+
+Lưu ý nuance từ POC 2026-06-09 (single-main instance): webhook register THỰC SỰ OK qua Public API trên 1.122.5 single-main (create+activate + update-while-active đều giữ webhook 200) — bug stale-router #21614 chỉ bite trên **queue mode + workflow bị push nhiều lần** (xem [[feedback_n8npc_instance_save_only]]). Với firing, `workflow run` bypass hết. Với webhook INBOUND production khi router stuck → vẫn cần UI Save / restart.
+
+
+## reference_n8n_internal_rest_run
+
+<!-- source: build-workflow-ai-training-tracker mtime 2026-07-20 -->
+_Autonomous trigger pattern cho n8n self-hosted khi webhook router stuck — login /rest/login cookie → POST /rest/workflows/{id}/run với workflowData full + triggerToStartFrom. Cross-project portable._
+
+n8n self-hosted instance (đặc biệt queue mode) thường KHÔNG re-register webhook + cron sau khi `n8nctl workflow update` qua API. UI Save là cách official fix nhưng phá rhythm autonomous. Workaround: **internal `/rest/workflows/{id}/run`** = endpoint nút *Execute Workflow* trong UI gọi. Bypass Public API limitation (không có /execute — [PR #20234](https://github.com/n8n-io/n8n/pull/20234) closed) và bypass webhook router stale state ([Issue #21614](https://github.com/n8n-io/n8n/issues/21614)).
+
+## Auth
+KHÔNG dùng (n8n api-key header) (trả 401). Cần session cookie:
+```
+POST /rest/login → {"emailOrLdapLoginId":"<email>","password":"<pw>"}
+→ 200 + Set-Cookie n8n-auth=...
+```
+
+## Run workflow body (verified 2026-06-09)
+```
+POST /rest/workflows/{workflow_id}/run
+Cookie: n8n-auth=...
+{
+  "workflowData": <full workflow object from GET /rest/workflows/{id}>,
+  "triggerToStartFrom": {"name": "Schedule Trigger"}
+}
+```
+**KHÔNG** include `runData` (n8n nhầm partial execution flow → HTTP 500 "destinationNodeName is required"). `triggerToStartFrom.name` là node NAME, không phải ID. Response async: `{"data":{"executionId":"<id>"}}`.
+
+## Workflow settings ảnh hưởng
+`saveManualExecutions: false` → exec không vào /api/v1/executions list. Bật `true` lúc debug.
+
+## Portable assets (cross-project, cross-session)
+- **Playbook chi tiết**: `~/.claude/docs/n8n-autonomous-trigger.md` (symptoms checklist + step-by-step + pitfalls)
+- **Conditional rule auto-load**: `~/.claude/rules/conditional/n8n-trigger-autonomy.md` (trigger khi user prompt match n8n webhook 404 / can't fire / router stuck patterns)
+- **Portable Python client (fallback)**: `~/.claude/scripts/n8n_session.py` (copy vào `<project>/scripts/`, đọc `.n8n-session.env` gitignored)
+
+## Cách dùng cho session khác (PREFERRED — n8nctl ≥ 0.5.0)
+
+n8nctl 0.5.0 đã có verb `workflow run` built-in dùng nguyên endpoint này. KHÔNG cần copy script Python nữa:
+```bash
+echo "$PW" | n8nctl auth login --session --email <email> --cookie-only
+n8nctl workflow run <wf_id> --trigger "<trigger_node_name>" --wait --timeout 480000
+n8nctl execution get <exec_id> --logs    # nếu saveManualExecutions=true
+```
+`--cookie-only` chỉ lưu cookie (~7d), KHÔNG lưu password. Help text cite Issue #21614. Verified 2026-06-10 trên n8npc.khoahrv.id.vn.
+
+## Fallback (n8nctl < 0.5.0 hoặc không có n8nctl)
+1. Copy script: `cp ~/.claude/scripts/n8n_session.py <project>/scripts/`
+2. Hỏi user UI credentials (politely, gitignored, rotate-able)
+3. Tạo `.n8n-session.env` + thêm vào `.gitignore`
+4. `python <project>/scripts/n8n_session.py run <workflow_id>` → fire autonomous
+
+Verified trên n8npc.khoahrv.id.vn cho [[project_ai_ceo_diary_fanpage]]. Liên quan [[feedback_n8n_webhook_no_register_via_api]], [[feedback_n8npc_instance_save_only]].
+
+
+## feedback_ifd_mail_gateway_link_rewrite
+
+<!-- source: build-workflow-ai-training-tracker mtime 2026-07-20 -->
+_Mail gateway mail.ifd.vn (SMTP it02@ifd.vn) rewrite mọi <a href> link → subdomain tracking url####.ifd.vn bị NXDOMAIN → link chết. Dùng plain-text URL thay clickable link._
+
+# IFD mail gateway rewrite link → chết (url####.ifd.vn NXDOMAIN)
+
+## Triệu chứng
+Email gửi qua SMTP IFD (`it02@ifd.vn`, host `mail.ifd.vn`, cred `UXg64lYpntKAwdyf`) có clickable link `<a href="https://...">`. Người nhận click → `This site can't be reached / DNS_PROBE_FINISHED_NXDOMAIN` cho domain `url4643.ifd.vn` (số thay đổi).
+
+## Root cause
+Mail gateway mail.ifd.vn có **URL-defense / click-tracking** rewrite mọi `<a href>` outbound → bọc qua subdomain `url####.ifd.vn`. Nhưng subdomain tracking đó **chưa config DNS** → NXDOMAIN → link chết. URL gốc trong source HTML hoàn toàn sạch (đã verify) — rewrite xảy ra ở gateway lúc gửi.
+
+## How to apply (workaround — verified deploy 2026-06-01)
+**Dùng plain-text URL thay `<a href>`**: gateway chỉ rewrite `<a href>` tag, KHÔNG đụng plain text. Recipient Gmail tự auto-linkify URL plain text client-side → mở đúng URL thật.
+
+Pattern (AI PM Build Email HTML):
+```html
+<!-- THAY: <a href="https://docs.google.com/...">📊 View Sheet</a> -->
+<div style="font-size:13px;">📊 Full Sheet (copy link để mở):</div>
+<div style="font-family:monospace; word-break:break-all;">https://docs.google.com/spreadsheets/d/.../edit#gid=...</div>
+```
+KHÔNG wrap trong `<a>`. Áp dụng cho MỌI workflow gửi qua SMTP IFD nếu cần link (AI Research, CV Screener, reminders...).
+
+## Fix triệt để (cần IT)
+IT tắt URL-tracking/rewrite trên mail.ifd.vn cho it02@ HOẶC config DNS cho subdomain pattern url*.ifd.vn. Sau đó mới dùng lại clickable button đẹp.
+
+## Caveat
+Nếu gateway nâng cấp để rewrite CẢ plain-text URL (linkify trước khi gửi) → workaround này fail, chỉ còn IT fix. Verify lại nếu link vẫn chết sau khi đổi plain-text.
+
+## Related
+- [[project-n8n-smtp-migration]] (SMTP IFD setup) · [[feedback-ai-pm-email-recipients]] · [[project-ai-product-manager]]
+
+
+## feedback_self_challenge_workflow_design
+
+<!-- source: build-workflow-ai-training-tracker mtime 2026-07-20 -->
+_Khi user yêu cầu build n8n workflow mới, PROACTIVELY tự challenge approach ban đầu với 3 câu hỏi (flaws, edge cases, alternative patterns) trước khi propose final architecture_
+
+Khi user yêu cầu xây dựng n8n workflow mới (hoặc bất kỳ automation/system design lớn nào), sau khi propose kiến trúc ban đầu, phải TỰ CHALLENGE trước khi user phải yêu cầu, theo framework 3 câu hỏi:
+
+1. **Flaws trong approach này là gì?** — Liệt kê cụ thể weakness của design (cost, consistency, scale, privacy, edge cases logic). Không nói chung chung, phải chỉ ra WHY + impact.
+2. **Edge cases mình miss?** — Bảng liệt kê 15-20 edge case cụ thể với impact, bao gồm: input format khác, duplicate identity, concurrent run, rate limit, privacy/legal, failure modes.
+3. **Pattern khác có tốt hơn không, tại sao?** — So sánh 3-5 alternative patterns. Chỉ rõ trade-off. Recommend pattern tốt nhất kèm bảng so sánh (cost, speed, consistency, privacy, scale).
+
+**Why:** User ngày 2026-04-23 explicit feedback: "Sau khi tôi yêu cầu challenge bạn đã phân tích rất sâu và tốt, nhiều cái tôi chưa có tư duy đến. Cần tiếp tục áp dụng, phát huy và cải thiện". User là AI Engineer có kinh nghiệm → cần partner critical thinking, không muốn approach "safe/default" generic.
+
+**How to apply:**
+- Áp dụng ngay sau khi propose architecture sơ bộ, KHÔNG chờ user yêu cầu
+- Format: section riêng "Challenge approach này" với 3 subsection (Flaws / Edge cases / Alternative patterns)
+- Kết luận bằng recommendation cụ thể + so sánh bảng
+- Nếu task đơn giản (utility 1 API call) thì có thể skip framework; nếu task là orchestrator/hub tier hoặc đụng privacy/scale/cost → BẮT BUỘC challenge
+- Sau khi user confirm direction mới, mới chuyển sang clarifying questions chi tiết rồi /n8n-build
