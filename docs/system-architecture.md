@@ -28,7 +28,8 @@ User prompt (Vietnamese/English intent)
 ### Guard layer (hooks/)
 4 deterministic hooks đăng ký qua `hooks.json` (biến `${CLAUDE_PLUGIN_ROOT}`):
 - **pre-n8n-secret-guard** — block hardcoded provider secret trên Write/Edit/MultiEdit/NotebookEdit. Pattern data ở `secret-patterns.json` (tách data khỏi logic).
-- **pre-bash-n8n-prod-guard** — fail-closed compensating control (vì harness chạy `bypassPermissions`): mutating `n8nctl` verb chỉ pass nếu tìm thấy artifact mới (`context-snippets.json`/`verification.json`, <30min) do skill deploy/fix/promote/credentials/rollback tạo. "No artifact = không cho chạy" (`pre-bash-n8n-prod-guard.cjs:30-60`).
+- **pre-bash-n8n-prod-guard** — fail-closed compensating control (vì harness chạy `bypassPermissions`): mutating `n8nctl` verb chỉ pass nếu tìm thấy artifact mới (`context-snippets.json`/`verification.json`, <30min) do skill deploy/fix/promote/credentials/rollback/cook/retire tạo. "No artifact = không cho chạy".
+  `workflow delete` là ca chặt nhất: chỉ artifact `/n8n-retire` mới qua — window 15 phút (`SKILL_MAX_AGE_MS`), hook đọc NỘI DUNG `verification.json` (3 bằng chứng tự đo + backup khớp sha256) và artifact đó không cấp quyền cho bất kỳ verb nào khác.
 - **post-n8n-validate** — warn-only validate.
 - **post-bash-n8nctl-diagnose** — suggest `/n8n-fix` on error.
 
@@ -39,7 +40,7 @@ User prompt (Vietnamese/English intent)
 Mutating command chỉ pass nếu có artifact file mới tạo bởi skill tương ứng — khớp `~/.claude/rules/conditional/harness-engineering.md` Pattern 1. Đây là backbone an toàn cho production-touching ops.
 
 ### Skill lifecycle (skills/)
-19 skill, router `n8n-pipeline`. Lifecycle: `n8n-intake → n8n-build → n8n-review → n8n-deploy → n8n-test → n8n-fix → n8n-rollback` + ops (`n8n-monitor`, `n8n-promote`, `n8n-credentials`, `n8n-docs`) + knowledge (`n8n-workflow-patterns`, `n8n-node-configuration`, `n8n-integrations`, `n8n-expression-syntax`, `n8n-code-javascript`, `n8n-validation-expert`, `n8nctl`).
+21 skill, router `n8n-pipeline`. Lifecycle: `n8n-intake → n8n-build → n8n-review → n8n-deploy → n8n-test → n8n-fix → n8n-rollback → n8n-retire` + ops (`n8n-monitor`, `n8n-promote`, `n8n-credentials`, `n8n-docs`) + knowledge (`n8n-workflow-patterns`, `n8n-node-configuration`, `n8n-integrations`, `n8n-expression-syntax`, `n8n-code-javascript`, `n8n-validation-expert`, `n8nctl`).
 
 ### Specialist agents (agents/)
 `n8n-builder` (greenfield JSON construction từ template, không blank), `n8n-debugger` (runtime forensics + self-heal, cap 3 lần rồi escalate).

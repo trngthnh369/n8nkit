@@ -86,6 +86,13 @@ có bản vá này — và bản vá **không** đóng được đường đó, 
 Trong lúc chưa làm: **coi prod-guard là hàng rào an toàn, không phải hàng rào bảo mật**. Với hành vi cố ý,
 control thật vẫn là backup (`workflow backup` trước mọi update) + `/n8n-rollback` + log execution.
 
+**Cập nhật 16/09 — `/n8n-retire` thu hẹp nhưng KHÔNG đóng nợ này.** Artifact retire là cái đầu tiên bị
+hook kiểm nội dung thật (3 bằng chứng + sha256 của backup phải khớp file trên đĩa), nên muốn giả thì phải
+giả nhiều hơn: vẫn phải có backup thật, hash thật. Nhưng vẫn là file JSON tự viết được ⇒ provenance vẫn
+là nợ mở, chỉ là giá đi tắt cao hơn. Lý do vẫn nên làm: trước đó `workflow delete` KHÔNG có đường hợp lệ
+nào, nên đường duy nhất để dọn rác là `N8NKIT_PROD_GUARD=off` — tắt cả cổng cho mọi verb. Một đường hẹp
+có bằng chứng an toàn hơn một công tắc tắt toàn bộ.
+
 ## Resolved in 0.1.1–0.3.0 (was deferred/known-issue)
 
 - Guard path-coupling → **fixed**: guards are config-driven (`resolveWorkflowRoot`), legacy `build-workflow`

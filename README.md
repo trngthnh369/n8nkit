@@ -11,8 +11,8 @@ domain**. It sits on top of [`@trngthnh369/n8nctl`](https://www.npmjs.com/packag
 ## What's inside
 
 - **Lifecycle skills** (`skills/`): `n8n-intake` → `n8n-build` → `n8n-review` → `n8n-deploy` → `n8n-test`
-  → `n8n-fix` → `n8n-rollback`, plus ops skills `n8n-monitor`, `n8n-promote`, `n8n-credentials`,
-  `n8n-docs` — all routed by `n8n-pipeline`. `n8n-cook` orchestrates the whole cycle in one command
+  → `n8n-fix` → `n8n-rollback` → `n8n-retire`, plus ops skills `n8n-monitor`, `n8n-promote`,
+  `n8n-credentials`, `n8n-docs` — all routed by `n8n-pipeline`. `n8n-cook` orchestrates the whole cycle in one command
   (intake → build → review → deploy+test via the n8nctl sequencer → optional activate → docs).
 - **Knowledge skills**: `n8n-workflow-patterns`, `n8n-node-configuration`, `n8n-integrations`,
   `n8n-expression-syntax`, `n8n-code-javascript`, `n8n-validation-expert`, `n8nctl`.
@@ -20,6 +20,7 @@ domain**. It sits on top of [`@trngthnh369/n8nctl`](https://www.npmjs.com/packag
 - **Guard layer** (`hooks/` + `hooks.json`), four deterministic hooks:
   - `pre-n8n-secret-guard` — block hardcoded provider secrets on Write/Edit/MultiEdit/NotebookEdit.
   - `pre-bash-n8n-prod-guard` — fail-closed gate: mutating `n8nctl` verbs need a fresh skill-produced approval artifact.
+    `workflow delete` is stricter still: only a `/n8n-retire` artifact (15 min, evidence-checked) authorizes it.
   - `post-n8n-validate` — warn-only `n8nctl workflow validate` after writing a workflow JSON.
   - `post-bash-n8nctl-diagnose` — suggest `/n8n-fix` when an `n8nctl` command errors.
 - **Shared** (`shared/`): `n8n-backup-manifest.js` (structured backups). **Config** (`.n8nkit/config.json`)
@@ -27,7 +28,7 @@ domain**. It sits on top of [`@trngthnh369/n8nctl`](https://www.npmjs.com/packag
 
 ## Distribution — Claude Code plugin
 
-Shipped as a plugin so the ~20 skills load **only in projects where you enable it** (solves the
+Shipped as a plugin so the ~21 skills load **only in projects where you enable it** (solves the
 per-session token cost, and makes the repo the single source of truth — no copy-install drift). See
 [`INSTALL.md`](./INSTALL.md).
 
@@ -53,6 +54,7 @@ Migrating from the pre-0.2 copy-install: `pwsh scripts/migrate-to-plugin.ps1` (s
 | Run + verify | `/n8n-test <workflowId>` |
 | Self-heal a failure | `/n8n-fix <workflowId>` |
 | Revert | `/n8n-rollback <workflowId>` |
+| Retire a dead workflow | `/n8n-retire <workflowId...>` |
 | Health + analytics | `/n8n-monitor [workflowId]` |
 | Promote / drift-check | `/n8n-promote <id> --to <profile>` |
 | Credential lifecycle | `/n8n-credentials <audit\|create\|rotate>` |

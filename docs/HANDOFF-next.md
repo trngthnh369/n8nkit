@@ -92,9 +92,12 @@ Phía CLI của "self-syncing catalog" ĐÃ XONG (`catalog sync` sinh validator 
    (theo payload cwd, walk-up 10 cấp), **và artifact phải liên quan**: thuộc skill thật sự chạy verb
    đó (`VERB_SKILLS`) và khai đúng `workflow_id` đang bị ghi. Khi n8nctl thêm verb mutating mới →
    update `MUTATING_VERBS` + `VERB_SKILLS` (2 bảng này thay `MUTATING_RE` cũ) + test.
+   Ngoại lệ chặt hơn (16/09): `workflow delete` chỉ nhận artifact `/n8n-retire`, window 15' thay vì 30'
+   (`SKILL_MAX_AGE_MS`), và hook đọc NỘI DUNG `verification.json` (3 bằng chứng + backup khớp sha256)
+   — artifact retire không cấp quyền cho verb nào khác, kể cả các key không có trong `VERB_SKILLS`.
 6. Skills surface **namespaced** `n8nkit:n8n-*`; auto-trigger theo description vẫn chạy. Verify headless:
    `cd build-workflow && claude -p "list Skills containing n8n ..."`.
-7. Sau mọi thay đổi hooks/scripts: `node scripts/test-hooks.cjs` (62 assertions) và nếu đụng plugin
+7. Sau mọi thay đổi hooks/scripts: `node scripts/test-hooks.cjs` (108 assertions) và nếu đụng plugin
    layout: `pwsh scripts/verify-plugin.ps1` (33 checks).
 8. n8nctl repo có session khác đang làm — `git log --oneline -5` + `git status` trước khi edit; đừng
    assume CHANGELOG của mình là mới nhất.

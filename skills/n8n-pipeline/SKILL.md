@@ -25,6 +25,7 @@ You are the entry point for n8n workflow automation. When triggered, you route t
 | Run workflow once to verify | `/n8n-test <workflowId> [--payload=...]` | Read-only, gate check |
 | Fix broken workflow (auto loop) | `/n8n-fix <workflowId>` | 3 retries → escalate |
 | Revert to last backup | `/n8n-rollback <workflowId>` | Confirmed rollback |
+| Xoá hẳn workflow chết | `/n8n-retire <workflowId...>` | 3 bằng chứng tự đo + backup; fail-closed, IRREVERSIBLE |
 | Health + failure analytics | `/n8n-monitor [workflowId] [--since=...]` | Read-only, routes to fix/credentials |
 | Promote between instances / drift | `/n8n-promote <id> --to <profile>` or `--check <A> <B>` | Target-touching, mapping + confirm |
 | Credential audit/create/rotate | `/n8n-credentials <audit\|create\|rotate>` | The only skill that touches credentials |
@@ -157,6 +158,7 @@ if intent = "deploy/push/update" + file given    → /n8n-deploy
 if intent = "test/chạy thử/verify" + id given    → /n8n-test
 if intent = "fix/sửa/debug" + id given           → /n8n-fix
 if intent = "rollback/revert" + id given         → /n8n-rollback
+if intent = "xoá/delete/retire workflow" + id    → /n8n-retire   # xoá hẳn ≠ deactivate; mơ hồ "dọn dẹp/tắt" → hỏi lại
 if intent = "monitor/health/thống kê lỗi"        → /n8n-monitor
 if intent = "promote/migrate" + target profile   → /n8n-promote
 if intent = "credential/rotate/xoay key"         → /n8n-credentials
@@ -172,6 +174,7 @@ if intent unclear → ask user + show the pipeline map above
 - `/n8n-fix` and `/n8n-deploy` STOP on credential issues → hand off to `/n8n-credentials` (they never touch credentials).
 - `/n8n-monitor` routes: deterministic failure → `/n8n-fix`; credential → `/n8n-credentials`; drift → `/n8n-promote --check`.
 - `/n8n-deploy` success → offer `/n8n-docs` to hand a runbook to the requester.
+- `/n8n-monitor` phát hiện workflow chết (inactive, 0 execution) → gợi ý `/n8n-retire <id>`; chính `/n8n-retire` đo lại bằng chứng, không tin report của skill khác.
 
 ## Tier selection heuristic (for /n8n-build)
 

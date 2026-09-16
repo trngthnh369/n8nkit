@@ -17,15 +17,15 @@
 ## Entry points
 - **Plugin bootstrap**: `/plugin marketplace add D:\Projects\personal\n8nkit` → `/plugin install n8nkit@n8nkit-marketplace` (đăng ký qua `.claude-plugin/marketplace.json`).
 - **Enable per-project**: `enabledPlugins` trong `.claude/settings.local.json` của project dùng nó (gotcha "sticky-false" — xem NOTES-followups.md).
-- **Slash commands** (auto-trigger theo description + namespaced `/n8nkit:n8n-*`): `/n8n-intake`, `/n8n-build`, `/n8n-review`, `/n8n-deploy`, `/n8n-test`, `/n8n-fix`, `/n8n-rollback`, `/n8n-monitor`, `/n8n-promote`, `/n8n-credentials`, `/n8n-docs`.
-- **Fallback router**: `skills/n8n-pipeline/SKILL.md` — trigger khi intent mơ hồ, bản đồ điều hướng 19 skill.
-- **Operator scripts** (không phải user entry): `scripts/install.ps1`, `migrate-to-plugin.ps1`, `verify-plugin.ps1`, `test-hooks.cjs` (62 assertions), `e2e-fix-loop.sh` / `e2e-prod-sample.sh` (cần session auth thật).
+- **Slash commands** (auto-trigger theo description + namespaced `/n8nkit:n8n-*`): `/n8n-intake`, `/n8n-build`, `/n8n-review`, `/n8n-deploy`, `/n8n-test`, `/n8n-fix`, `/n8n-rollback`, `/n8n-retire`, `/n8n-monitor`, `/n8n-promote`, `/n8n-credentials`, `/n8n-docs`.
+- **Fallback router**: `skills/n8n-pipeline/SKILL.md` — trigger khi intent mơ hồ, bản đồ điều hướng 21 skill.
+- **Operator scripts** (không phải user entry): `scripts/install.ps1`, `migrate-to-plugin.ps1`, `verify-plugin.ps1`, `test-hooks.cjs` (108 assertions), `e2e-fix-loop.sh` / `e2e-prod-sample.sh` (cần session auth thật).
 
 ## Module map
 | Thư mục | Vai trò | File quan trọng |
 |---|---|---|
 | `.claude-plugin/` | Plugin manifest | `plugin.json` (v0.4.1), `marketplace.json` |
-| `skills/` (19) | Progressive-disclosure skills, mỗi folder 1 `SKILL.md` + reference `.md` phụ | `n8n-pipeline/` (router), `n8n-build`, `n8n-deploy`, `n8n-fix`, `n8n-review/LENSES.md`, `n8n-code-javascript/*`, `n8nctl/` |
+| `skills/` (21) | Progressive-disclosure skills, mỗi folder 1 `SKILL.md` + reference `.md` phụ | `n8n-pipeline/` (router), `n8n-build`, `n8n-deploy`, `n8n-fix`, `n8n-review/LENSES.md`, `n8n-code-javascript/*`, `n8nctl/` |
 | `agents/` | 2 specialist subagents | `n8n-builder.md` (greenfield JSON), `n8n-debugger.md` (runtime forensics + self-heal) |
 | `hooks/` | 4 deterministic guard hooks (self-contained `.cjs`) + manifest | `_lib.cjs`, `pre-n8n-secret-guard.cjs`, `pre-bash-n8n-prod-guard.cjs`, `post-n8n-validate.cjs`, `post-bash-n8nctl-diagnose.cjs`, `secret-patterns.json`, `hooks.json` |
 | `.n8nkit/` | Config-driven path resolution + schema | `config.json` (workflowRoot/templatesDir…), `config.schema.json` |

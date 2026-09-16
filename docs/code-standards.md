@@ -17,7 +17,7 @@ Conventions trích từ code thật (cite file). Áp cho contribution mới.
 - **Block có chủ đích**: phải gọi `process.exit(2)` explicit bên trong `fn` (process.exit không throw nên safeHook không nuốt).
 - **2 chế độ error tách biệt**: fail-open cho lỗi hệ thống (log + exit 0), fail-closed cho intentional block (exit 2).
 - Function naming camelCase, 1 trách nhiệm: `readInput`, `resolveWorkflowRoot`, `isWorkflowJsonPath`, `extractWriteContent`.
-- Regex/hằng số UPPER_SNAKE: `ARTIFACT_MAX_AGE_MS`, `MUTATING_VERBS`, `VERB_SKILLS`, `ID_POSITIONAL`, `WRITE_OP_RE`, `ARTIFACT_DIR_RE` (`pre-bash-n8n-prod-guard.cjs:23-73`). `MUTATING_VERBS` + `VERB_SKILLS` thay cho `MUTATING_RE` cũ (một regex phẳng) từ 2026-09-10: gác theo `<resource>:<verb>` để artifact còn ràng được vào đúng skill + đúng workflow id.
+- Regex/hằng số UPPER_SNAKE: `ARTIFACT_MAX_AGE_MS`, `SKILL_MAX_AGE_MS` (override per-skill, hiện chỉ `retire`=15'), `MUTATING_VERBS`, `VERB_SKILLS`, `ID_POSITIONAL`, `WRITE_OP_RE`, `ARTIFACT_DIR_RE` (`pre-bash-n8n-prod-guard.cjs:23-73`). `MUTATING_VERBS` + `VERB_SKILLS` thay cho `MUTATING_RE` cũ (một regex phẳng) từ 2026-09-10: gác theo `<resource>:<verb>` để artifact còn ràng được vào đúng skill + đúng workflow id.
 - Self-contained: chỉ built-in Node (`fs`/`path`/`os`/`child_process`), không import package ngoài.
 
 ## Config over hardcode

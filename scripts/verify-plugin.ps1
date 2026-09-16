@@ -10,7 +10,7 @@ $Claude    = Join-Path $HOME '.claude'
 $RepoRoot  = Split-Path -Parent $PSScriptRoot
 $Expected  = (Get-Content (Join-Path $RepoRoot '.claude-plugin\plugin.json') -Raw | ConvertFrom-Json).version
 $N8nSkills = @('n8n-intake','n8n-build','n8n-review','n8n-deploy','n8n-test','n8n-fix','n8n-rollback','n8n-pipeline',
-               'n8n-monitor','n8n-promote','n8n-credentials','n8n-docs',
+               'n8n-monitor','n8n-promote','n8n-credentials','n8n-docs','n8n-retire',
                'n8n-workflow-patterns','n8n-node-configuration','n8n-integrations','n8n-expression-syntax',
                'n8n-code-javascript','n8n-validation-expert','n8nctl')
 $pass = 0; $fail = 0
@@ -67,7 +67,11 @@ function FireHook($cjs, $payload) {
   [pscustomobject]@{ code = $LASTEXITCODE; out = ($out -join "`n") }
 }
 $wf = Join-Path $scratch 'x\wf.json'
-$r = FireHook 'pre-n8n-secret-guard.cjs' @{ cwd = $scratch; tool_input = @{ file_path = $wf; content = 'AKIAIOSFODNN7EXAMPLE1' } }
+# Secret-SHAPED fixture (the AWS documentation example, no live value), split so the commit-time
+# secret scanner does not match this file's source — a whole-file allowlist pin would go stale here
+# on every edit. The runtime value is unchanged, which is what the assertion below proves.
+$fakeAwsKey = 'AKIA' + 'IOSFODNN7EXAMPLE1'
+$r = FireHook 'pre-n8n-secret-guard.cjs' @{ cwd = $scratch; tool_input = @{ file_path = $wf; content = $fakeAwsKey } }
 Check "secret-guard blocks AWS key (config-scoped, no build-workflow)" ($r.code -eq 2 -and $r.out -match 'BLOCKED') "code=$($r.code)"
 $r = FireHook 'pre-bash-n8n-prod-guard.cjs' @{ cwd = $scratch; tool_input = @{ command = 'n8nctl workflow update 42 wf.json' } }
 Check "prod-guard blocks mutating verb w/o artifact" ($r.code -eq 2 -and $r.out -match 'BLOCKED') "code=$($r.code)"
